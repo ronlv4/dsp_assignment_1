@@ -1,7 +1,9 @@
 package Utils;
 
+import java.io.File;
+
 public class Network {
-    public static String downloadFile(String url){
+    public static File downloadFile(String url){
 
     }
 }
