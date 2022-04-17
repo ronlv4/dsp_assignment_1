@@ -1,8 +1,8 @@
-import Models.SqsMessage;
-import Utils.Network;
+package dsp;
+
+import dsp.Models.SqsMessage;
+import dsp.Utils.Network;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.UploadPartRequest;
-import software.amazon.awssdk.services.s3.model.UploadPartResponse;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 import java.io.File;
+import java.util.Properties;
 
 public class Worker {
 
@@ -21,6 +22,11 @@ public class Worker {
 
     private static Object[] parseMessage(String message){
         return new Object[2]; // #TODO
+    }
+
+    private static void analizeText(File textFile){
+        Properties props = new Properties();
+
     }
 
     public static void main(String[] args) {
@@ -35,7 +41,7 @@ public class Worker {
             File textFile = Network.downloadFile(url);
             analizeText(textFile);
             S3Client s3Client = S3Client.create();
-            UploadPartResponse uploadPartResponse = s3Client.uploadPart(UploadPartRequest.builder().bucket("enter-bucket-here").build());
+//            UploadPartResponse uploadPartResponse = s3Client.uploadPart(UploadPartRequest.builder().bucket("enter-bucket-here").build());
         }
     }
 

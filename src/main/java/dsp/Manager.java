@@ -1,10 +1,8 @@
-import Models.SqsMessage;
+package dsp;
+
+import dsp.Models.SqsMessage;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.model.*;
-import java.util.List;
-import org.slf4j.LoggerFactory;
 
 
 public class Manager {

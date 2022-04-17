@@ -1,4 +1,4 @@
-package Models;
+package dsp.Models;
 
 public class SqsMessage {
 
