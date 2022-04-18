@@ -6,6 +6,7 @@ import java.io.IOException;
 import com.example.myapp.s3.S3BucketOps;
 import com.example.myapp.sqs.MessageOperations;
 import com.example.myapp.sqs.QueueOperations;
+import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.*;
@@ -20,6 +21,11 @@ public class App {
 
         if (args.length == 0)
             System.exit(0);
+        String[] myArgs = {"-retainTMPSubcategories", "-outputFormat", "wordsAndTags,penn,typedDependencies", "englishPCFG.ser.gz", "input.txt"};
+        String[] myArgs2 = {"-retainTMPSubcategories -outputFormat \"wordsAndTags,penn,typedDependencies\" englishPCFG.ser.gz input.txt"};
+        LexicalizedParser.main(myArgs);
+        System.exit(0);
+//        java -cp stanford-parser.jar:. -mx200m edu.stanford.nlp.parser.lexparser.LexicalizedParser -retainTMPSubcategories -outputFormat "wordsAndTags,penn,typedDependencies" englishPCFG.ser.gz input.txt
 
         Region region = Region.US_WEST_2;
         S3Client s3 = S3Client.builder().region(region).build();

@@ -2,13 +2,11 @@ package com.example.dsp;
 
 import com.example.dsp.Utils.Network;
 import com.example.myapp.sqs.MessageOperations;
+import edu.stanford.nlp.parser.server.LexicalizedParserClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
-import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
+import software.amazon.awssdk.services.sqs.model.*;
 
 import java.io.File;
 import java.util.Properties;
@@ -34,6 +32,13 @@ public class Worker {
         SqsClient sqsClient = SqsClient.builder()
                 .region(Region.US_WEST_2)
                 .build();
+
+        ListQueuesResponse listQueuesResponse = sqsClient.listQueues(ListQueuesRequest.builder().queueNamePrefix("input").build());
+        for (String queueUrl: listQueuesResponse.queueUrls()){
+            ReceiveMessageResponse receiveMessageResponse = sqsClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl).build());
+            receiveMessageResponse.messages().forEach(message -> message.messageAttributes().get("analysis-type"));
+        }
+//        LexicalizedParserClient client = new LexicalizedParserClient()
 
 //        MessageOperations.receiveMessages(sqsClient, )
 
