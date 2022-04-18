@@ -11,11 +11,9 @@ public class QueueOperations {
             System.out.println("\nCreate Queue");
             // snippet-start:[sqs.java2.sqs_example.create_queue]
 
-            CreateQueueRequest createQueueRequest = CreateQueueRequest.builder()
+            sqsClient.createQueue(CreateQueueRequest.builder()
                     .queueName(queueName)
-                    .build();
-
-            sqsClient.createQueue(createQueueRequest);
+                    .build());
             // snippet-end:[sqs.java2.sqs_example.create_queue]
 
             System.out.println("\nGet queue url");
@@ -24,6 +22,7 @@ public class QueueOperations {
             GetQueueUrlResponse getQueueUrlResponse =
                     sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build());
             String queueUrl = getQueueUrlResponse.queueUrl();
+            System.out.println("\nQueue created\nURL: " + queueUrl);
             return queueUrl;
 
         } catch (SqsException e) {

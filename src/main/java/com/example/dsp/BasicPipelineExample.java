@@ -1,4 +1,4 @@
-package dsp;
+package com.example.dsp;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.Sentence;

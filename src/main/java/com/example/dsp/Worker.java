@@ -1,7 +1,8 @@
-package dsp;
+package com.example.dsp;
 
-import dsp.Models.SqsMessage;
-import dsp.Utils.Network;
+import com.example.dsp.Utils.Network;
+import com.example.myapp.sqs.MessageOperations;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
@@ -30,7 +31,12 @@ public class Worker {
     }
 
     public static void main(String[] args) {
-        SqsClient sqsClient = SqsClient.create();
+        SqsClient sqsClient = SqsClient.builder()
+                .region(Region.US_WEST_2)
+                .build();
+
+//        MessageOperations.receiveMessages(sqsClient, )
+
         sqsClient.getQueueUrl(GetQueueUrlRequest.builder().build());
         ReceiveMessageResponse messageResponse = sqsClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl("enter-url-here").build());
         for (Message message: messageResponse.messages()){

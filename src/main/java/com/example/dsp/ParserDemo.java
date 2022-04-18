@@ -1,4 +1,4 @@
-package dsp;
+package com.example.dsp;
 
 import java.util.Collection;
 import java.util.List;

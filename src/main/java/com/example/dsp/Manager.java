@@ -1,6 +1,5 @@
-package dsp;
+package com.example.dsp;
 
-import dsp.Models.SqsMessage;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
@@ -16,7 +15,7 @@ public class Manager {
         String[] textFilesUrls = downloadInputFromS3(inputURL);
 
         SqsClient sqsClient = SqsClient.create();
-        String queueURL = SqsQueue.createQueue(sqsClient, "tasksQueue");
+//        String queueURL = SqsQueue.createQueue(sqsClient, "tasksQueue");
 
         for (String url :
                 textFilesUrls) {

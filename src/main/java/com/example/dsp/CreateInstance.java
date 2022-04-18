@@ -11,7 +11,7 @@
    SPDX-License-Identifier: Apache-2.0
 */
 
-package dsp;
+package com.example.dsp;
 
 // snippet-start:[ec2.java2.create_instance.import]
 import software.amazon.awssdk.regions.Region;

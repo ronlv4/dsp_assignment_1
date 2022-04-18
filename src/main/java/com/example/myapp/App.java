@@ -3,14 +3,15 @@ package com.example.myapp;
 import java.io.File;
 import java.io.IOException;
 
-import software.amazon.awssdk.core.Response;
-import software.amazon.awssdk.core.ResponseInputStream;
+import com.example.myapp.s3.S3BucketOps;
+import com.example.myapp.sqs.MessageOperations;
+import com.example.myapp.sqs.QueueOperations;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
+import com.example.dsp.Models.SqsInputMessage;
 
 
 public class App {
@@ -24,9 +25,9 @@ public class App {
         S3Client s3 = S3Client.builder().region(region).build();
 
         String bucket = "dsp" + System.currentTimeMillis();
-        String key = "key";
+        String key = "input-file";
 
-        tutorialSetup(s3, bucket, region);
+        S3BucketOps.createBucket(s3, bucket, region);
         System.out.println("Uploading object...");
 
         s3.putObject(PutObjectRequest.builder().bucket(bucket).key(key)
@@ -39,10 +40,16 @@ public class App {
         String queueName = "queue" + System.currentTimeMillis();
 
         SqsClient sqsClient = SqsClient.builder()
-                .region(Region.US_WEST_2)
+                .region(region)
                 .build();
 
-        sqsClient.createQueue(CreateQueueRequest.builder().queueName(queueName).build());
+        String queueURL = QueueOperations.createQueue(sqsClient, queueName);
+
+        MessageOperations.sendMessage(sqsClient, queueURL, new SqsInputMessage(bucket, key).serializeMessage());
+
+        sqsClient.close();
+
+        // start manager if exists else create one and start
 
 //        cleanUp(s3, bucket, key);
 
@@ -52,7 +59,7 @@ public class App {
         System.out.println("Exiting...");
     }
 
-    public static void tutorialSetup(S3Client s3Client, String bucketName, Region region) {
+    public static void createBucket(S3Client s3Client, String bucketName, Region region) {
         try {
             System.out.println("Creating bucket: " + bucketName);
             s3Client.createBucket(CreateBucketRequest

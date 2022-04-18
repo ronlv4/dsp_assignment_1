@@ -7,6 +7,14 @@ import java.util.List;
 
 public class MessageOperations {
 
+    public static void sendMessage(SqsClient sqsClient, String queueUrl, String messageBody){
+        sqsClient.sendMessage(SendMessageRequest.builder()
+                .queueUrl(queueUrl)
+                .messageBody(messageBody)
+                .delaySeconds(10)
+                .build());
+    }
+
     public static void sendBatchMessages(SqsClient sqsClient, String queueUrl) {
 
         System.out.println("\nSend multiple messages");
