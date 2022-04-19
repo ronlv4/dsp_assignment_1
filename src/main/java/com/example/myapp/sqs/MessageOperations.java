@@ -4,12 +4,17 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
 import java.util.List;
+import java.util.Map;
 
 public class MessageOperations {
+    public static void sendMessage(SqsClient sqsClient, String queueUrl, String messageBody) {
+        sendMessage(sqsClient, queueUrl, messageBody, null);
+    }
 
-    public static void sendMessage(SqsClient sqsClient, String queueUrl, String messageBody){
+    public static void sendMessage(SqsClient sqsClient, String queueUrl, String messageBody, Map<String, MessageAttributeValue> messageAttributeValueMap) {
         sqsClient.sendMessage(SendMessageRequest.builder()
                 .queueUrl(queueUrl)
+                .messageAttributes(messageAttributeValueMap)
                 .messageBody(messageBody)
                 .delaySeconds(10)
                 .build());

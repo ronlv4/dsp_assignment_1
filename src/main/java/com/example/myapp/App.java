@@ -1,30 +1,62 @@
 package com.example.myapp;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.example.myapp.s3.S3BucketOps;
 import com.example.myapp.sqs.MessageOperations;
 import com.example.myapp.sqs.QueueOperations;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
+import edu.stanford.nlp.parser.nndep.DependencyParser;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import com.example.dsp.Models.SqsInputMessage;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 
 public class App {
 
+    private static String downloadTextFile(URL url){
+        StringBuilder stringBuilder = new StringBuilder();
+        try {
+            URLConnection urlConnection = url.openConnection();
+            urlConnection.setConnectTimeout(1000);
+            urlConnection.setReadTimeout(1000);
+            BufferedReader breader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+
+            String line;
+            while((line = breader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+
+            System.out.println(stringBuilder.toString());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return stringBuilder.toString();
+    }
+
     public static void main(String[] args) throws IOException {
+
+        downloadTextFile(new URL("https://www.gutenberg.org/files/1659/1659-0.txt"));
+        System.exit(0);
+
+
 
         if (args.length == 0)
             System.exit(0);
-        String[] myArgs = {"-retainTMPSubcategories", "-outputFormat", "wordsAndTags,penn,typedDependencies", "englishPCFG.ser.gz", "input.txt"};
-        String[] myArgs2 = {"-retainTMPSubcategories -outputFormat \"wordsAndTags,penn,typedDependencies\" englishPCFG.ser.gz input.txt"};
-        LexicalizedParser.main(myArgs);
-        System.exit(0);
+        String[] myArgs2 = {"edu.stanford.nlp.parser.nndep.DependencyParser", "input.txt"};
+//        DependencyParser.main(myArgs);
 //        java -cp stanford-parser.jar:. -mx200m edu.stanford.nlp.parser.lexparser.LexicalizedParser -retainTMPSubcategories -outputFormat "wordsAndTags,penn,typedDependencies" englishPCFG.ser.gz input.txt
 
         Region region = Region.US_WEST_2;
@@ -32,6 +64,8 @@ public class App {
 
         String bucket = "dsp" + System.currentTimeMillis();
         String key = "input-file";
+        System.exit(0);
+
 
         S3BucketOps.createBucket(s3, bucket, region);
         System.out.println("Uploading object...");
@@ -51,7 +85,14 @@ public class App {
 
         String queueURL = QueueOperations.createQueue(sqsClient, queueName);
 
-        MessageOperations.sendMessage(sqsClient, queueURL, new SqsInputMessage(bucket, key).serializeMessage());
+        Map<String, MessageAttributeValue> messageAttributeValueMap = new HashMap<>();
+        messageAttributeValueMap.put("n", MessageAttributeValue.builder().stringValue(args[3]).build());
+        Message inputMessage = Message.builder().messageAttributes(messageAttributeValueMap).build();
+        String messageBody = new HashMap<String , String>() {{
+            put("bucket", bucket);
+            put("key",key);
+        }}.toString();
+        MessageOperations.sendMessage(sqsClient, queueURL, messageBody, messageAttributeValueMap);
 
         sqsClient.close();
 
