@@ -9,6 +9,7 @@ import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.example.dsp.Worker;
 import com.example.myapp.s3.S3BucketOps;
 import com.example.myapp.sqs.MessageOperations;
 import com.example.myapp.sqs.QueueOperations;
@@ -26,29 +27,9 @@ import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 public class App {
 
-    private static String downloadTextFile(URL url){
-        StringBuilder stringBuilder = new StringBuilder();
-        try {
-            URLConnection urlConnection = url.openConnection();
-            urlConnection.setConnectTimeout(1000);
-            urlConnection.setReadTimeout(1000);
-            BufferedReader breader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-
-            String line;
-            while((line = breader.readLine()) != null) {
-                stringBuilder.append(line);
-            }
-
-            System.out.println(stringBuilder.toString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return stringBuilder.toString();
-    }
-
     public static void main(String[] args) throws IOException {
 
-        downloadTextFile(new URL("https://www.gutenberg.org/files/1659/1659-0.txt"));
+        Worker.analizeText("input.txt");
         System.exit(0);
 
 
@@ -58,7 +39,7 @@ public class App {
         String[] myArgs2 = {"edu.stanford.nlp.parser.nndep.DependencyParser", "input.txt"};
 //        DependencyParser.main(myArgs);
 //        java -cp stanford-parser.jar:. -mx200m edu.stanford.nlp.parser.lexparser.LexicalizedParser -retainTMPSubcategories -outputFormat "wordsAndTags,penn,typedDependencies" englishPCFG.ser.gz input.txt
-
+//        "-retainTMPSubcategories", "-outputFormat", "wordsAndTags,penn,typedDependencies",
         Region region = Region.US_WEST_2;
         S3Client s3 = S3Client.builder().region(region).build();
 
