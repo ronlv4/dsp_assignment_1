@@ -1,4 +1,4 @@
-package com.example.dsp;
+package com.dsp.instances;
 
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;

@@ -1,4 +1,4 @@
-package com.example.dsp.Models;
+package com.dsp.Models;
 
 import com.google.gson.Gson;
 

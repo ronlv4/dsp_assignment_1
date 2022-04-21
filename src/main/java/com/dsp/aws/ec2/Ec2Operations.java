@@ -1,4 +1,4 @@
-package com.example.myapp.ec2;
+package com.dsp.aws.ec2;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;

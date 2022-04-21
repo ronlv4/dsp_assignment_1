@@ -1,4 +1,4 @@
-package com.example.myapp.s3;
+package com.dsp.aws.s3;
 
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;

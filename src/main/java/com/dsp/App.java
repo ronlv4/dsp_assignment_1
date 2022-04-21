@@ -1,26 +1,19 @@
-package com.example.myapp;
+package com.dsp;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.example.dsp.Worker;
-import com.example.myapp.s3.S3BucketOps;
-import com.example.myapp.sqs.MessageOperations;
-import com.example.myapp.sqs.QueueOperations;
-import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
-import edu.stanford.nlp.parser.nndep.DependencyParser;
+import com.dsp.instances.Worker;
+import com.dsp.aws.s3.S3BucketOps;
+import com.dsp.aws.sqs.MessageOperations;
+import com.dsp.aws.sqs.QueueOperations;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import com.example.dsp.Models.SqsInputMessage;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
@@ -43,7 +36,7 @@ public class App {
         Region region = Region.US_WEST_2;
         S3Client s3 = S3Client.builder().region(region).build();
 
-        String bucket = "dsp" + System.currentTimeMillis();
+        String bucket = "com/dsp" + System.currentTimeMillis();
         String key = "input-file";
         System.exit(0);
 
