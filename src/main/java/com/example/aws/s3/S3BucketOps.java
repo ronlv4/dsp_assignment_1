@@ -1,4 +1,4 @@
-package com.dsp.aws.s3;
+package com.example.aws.s3;
 
 import software.amazon.awssdk.core.waiters.WaiterResponse;
 import software.amazon.awssdk.regions.Region;

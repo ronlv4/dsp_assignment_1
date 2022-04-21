@@ -1,14 +1,14 @@
-package com.dsp;
+package com.example.myapp;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.dsp.instances.Worker;
-import com.dsp.aws.s3.S3BucketOps;
-import com.dsp.aws.sqs.MessageOperations;
-import com.dsp.aws.sqs.QueueOperations;
+import com.example.aws.s3.S3BucketOps;
+import com.example.aws.sqs.MessageOperations;
+import com.example.aws.sqs.QueueOperations;
+import com.example.instances.Worker;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.*;

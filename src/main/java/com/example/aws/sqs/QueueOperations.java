@@ -1,4 +1,4 @@
-package com.dsp.aws.sqs;
+package com.example.aws.sqs;
 
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;

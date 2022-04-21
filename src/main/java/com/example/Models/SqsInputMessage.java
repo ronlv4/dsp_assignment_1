@@ -1,12 +1,12 @@
-package com.dsp.Models;
+package com.example.Models;
 
-import com.google.gson.Gson;
+//import com.google.gson.Gson;
 
 import java.io.Serializable;
 
 public class SqsInputMessage implements Serializable {
 
-    public static Gson gson = new Gson();
+//    public static Gson gson = new Gson();
     private String inputBucketUrl;
     private String key;
 
@@ -16,7 +16,8 @@ public class SqsInputMessage implements Serializable {
     }
 
     public String serializeMessage(){
-        return gson.toJson(this);
+//        return gson.toJson(this);
+        return "";
 
     }
 

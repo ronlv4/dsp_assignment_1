@@ -1,4 +1,4 @@
-package com.dsp.instances;
+package com.example.instances;
 
 import com.dsp.aws.sqs.MessageOperations;
 import edu.stanford.nlp.ling.CoreLabel;
