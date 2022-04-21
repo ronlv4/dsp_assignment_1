@@ -26,7 +26,6 @@ public class App {
         System.exit(0);
 
 
-
         if (args.length == 0)
             System.exit(0);
         String[] myArgs2 = {"edu.stanford.nlp.parser.nndep.DependencyParser", "input.txt"};
@@ -62,9 +61,9 @@ public class App {
         Map<String, MessageAttributeValue> messageAttributeValueMap = new HashMap<>();
         messageAttributeValueMap.put("n", MessageAttributeValue.builder().stringValue(args[3]).build());
         Message inputMessage = Message.builder().messageAttributes(messageAttributeValueMap).build();
-        String messageBody = new HashMap<String , String>() {{
+        String messageBody = new HashMap<String, String>() {{
             put("bucket", bucket);
-            put("key",key);
+            put("key", key);
         }}.toString();
         MessageOperations.sendMessage(sqsClient, queueURL, messageBody, messageAttributeValueMap);
 
@@ -80,39 +79,17 @@ public class App {
         System.out.println("Exiting...");
     }
 
-    public static void createBucket(S3Client s3Client, String bucketName, Region region) {
-        try {
-            System.out.println("Creating bucket: " + bucketName);
-            s3Client.createBucket(CreateBucketRequest
-                    .builder()
-                    .bucket(bucketName)
-                    .createBucketConfiguration(
-                            CreateBucketConfiguration.builder()
-                                    .locationConstraint(region.id())
-                                    .build())
-                    .build());
-            s3Client.waiter().waitUntilBucketExists(HeadBucketRequest.builder()
-                    .bucket(bucketName)
-                    .build());
-            System.out.println(bucketName +" is ready.");
-            System.out.printf("%n");
-        } catch (S3Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
-        }
-    }
-
     public static void cleanUp(S3Client s3Client, String bucketName, String keyName) {
         System.out.println("Cleaning up...");
         try {
             System.out.println("Deleting object: " + keyName);
             DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder().bucket(bucketName).key(keyName).build();
             s3Client.deleteObject(deleteObjectRequest);
-            System.out.println(keyName +" has been deleted.");
+            System.out.println(keyName + " has been deleted.");
             System.out.println("Deleting bucket: " + bucketName);
             DeleteBucketRequest deleteBucketRequest = DeleteBucketRequest.builder().bucket(bucketName).build();
             s3Client.deleteBucket(deleteBucketRequest);
-            System.out.println(bucketName +" has been deleted.");
+            System.out.println(bucketName + " has been deleted.");
             System.out.printf("%n");
         } catch (S3Exception e) {
             System.err.println(e.awsErrorDetails().errorMessage());

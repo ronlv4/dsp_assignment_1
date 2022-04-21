@@ -51,23 +51,23 @@ public class Worker {
     }
 
     public static File analizeText(String url) {
-        {
-            LexicalizedParser lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz");
-            lp.setOptionFlags("-maxLength", "80", "-retainTmpSubcategories", "-outputFilesDirectory", ".");
-            String[] sent = {"This", "is", "an", "easy", "sentence", "."};
-            List<CoreLabel> rawWords = Sentence.toCoreLabelList(sent);
-            Tree parse = lp.apply(rawWords);
-            parse.pennPrint();
-            System.out.println();
-            TreebankLanguagePack tlp = new PennTreebankLanguagePack();
-            GrammaticalStructureFactory gsf = tlp.grammaticalStructureFactory();
-            GrammaticalStructure gs = gsf.newGrammaticalStructure(parse);
-            List<TypedDependency> tdl = gs.typedDependenciesCCprocessed();
-            System.out.println(tdl);
-            System.out.println();
-            TreePrint tp = new TreePrint("penn,typedDependenciesCollapsed");
-            tp.printTree(parse);
-        }
+//        {
+//            LexicalizedParser lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz");
+//            lp.setOptionFlags("-maxLength", "80", "-retainTmpSubcategories", "-outputFilesDirectory", ".");
+//            String[] sent = {"This", "is", "an", "easy", "sentence", "."};
+//            List<CoreLabel> rawWords = Sentence.toCoreLabelList(sent);
+//            Tree parse = lp.apply(rawWords);
+//            parse.pennPrint();
+//            System.out.println();
+//            TreebankLanguagePack tlp = new PennTreebankLanguagePack();
+//            GrammaticalStructureFactory gsf = tlp.grammaticalStructureFactory();
+//            GrammaticalStructure gs = gsf.newGrammaticalStructure(parse);
+//            List<TypedDependency> tdl = gs.typedDependenciesCCprocessed();
+//            System.out.println(tdl);
+//            System.out.println();
+//            TreePrint tp = new TreePrint("penn,typedDependenciesCollapsed");
+//            tp.printTree(parse);
+//        }
         {
             String[] myArgs = {"-model", "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz", "-saveToTextFile", "./output.txt", "-retainTMPSubcategories", "-outputFormat", "wordsAndTags,penn,typedDependencies", url};
             LexicalizedParser.main(myArgs);
