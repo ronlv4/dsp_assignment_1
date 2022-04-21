@@ -1,6 +1,6 @@
 package com.example.instances;
 
-import com.dsp.aws.sqs.MessageOperations;
+import com.example.aws.sqs.MessageOperations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.ling.Sentence;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
