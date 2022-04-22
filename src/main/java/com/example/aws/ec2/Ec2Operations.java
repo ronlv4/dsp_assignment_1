@@ -1,11 +1,30 @@
 package com.example.aws.ec2;
 
+import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 
 public class Ec2Operations {
 
-    public static String createEC2Instance(Ec2Client ec2, String name, String amiId ) {
+    public static void runInstanceByMoshe(Ec2Client ec2, String name, String amiId) {
+        IamInstanceProfileSpecification iamInstanceProfile = IamInstanceProfileSpecification.builder()
+                .name("LabInstanceProfile")
+                .build();
+
+        RunInstancesRequest runRequest = RunInstancesRequest.builder()
+                .imageId("ami-0ed9277fb7eb570c9")
+                .instanceType(InstanceType.T2_MICRO)
+                .maxCount(1)
+                .minCount(1)
+                .keyName("Management")
+//               .userData(encodedUserData)
+//               .securityGroups(securityGroups)
+                .iamInstanceProfile(iamInstanceProfile)
+//               .tagSpecifications(myTags)
+                .build();
+    }
+
+    public static String createEC2Instance(Ec2Client ec2, String name, String amiId) {
 
         RunInstancesRequest runRequest = RunInstancesRequest.builder()
                 .imageId(amiId)
@@ -79,7 +98,7 @@ public class Ec2Operations {
         }
     }
 
-    public static void describeEC2Instances( Ec2Client ec2){
+    public static void describeEC2Instances(Ec2Client ec2) {
 
         boolean done = false;
         String nextToken = null;
@@ -93,10 +112,10 @@ public class Ec2Operations {
                 for (Reservation reservation : response.reservations()) {
                     for (Instance instance : reservation.instances()) {
                         System.out.println("Instance Id is " + instance.instanceId());
-                        System.out.println("Image id is "+  instance.imageId());
-                        System.out.println("Instance type is "+  instance.instanceType());
-                        System.out.println("Instance state name is "+  instance.state().name());
-                        System.out.println("monitoring information is "+  instance.monitoring().state());
+                        System.out.println("Image id is " + instance.imageId());
+                        System.out.println("Instance type is " + instance.instanceType());
+                        System.out.println("Instance state name is " + instance.state().name());
+                        System.out.println("monitoring information is " + instance.monitoring().state());
 
                     }
                 }
@@ -109,5 +128,23 @@ public class Ec2Operations {
         }
     }
 
-    
+    public static String getManagerInstance(Ec2Client ec2) {
+        try {
+
+            DescribeInstancesRequest request = DescribeInstancesRequest.builder()
+                    .maxResults(6)
+                    .filters(
+                            Filter.builder().name("tag:Name").values("Manager").build())
+                    .build();
+            DescribeInstancesResponse response = ec2.describeInstances(request);
+
+            if (!response.hasReservations())
+                return createEC2Instance(ec2, "Manager", "ami-0f9fc25dd2506cf6d");
+            return response.reservations().get(0).instances().get(0).instanceId();
+
+        } catch (Ec2Exception e) {
+            System.err.println(e.awsErrorDetails().errorMessage());
+            return null;
+        }
+    }
 }

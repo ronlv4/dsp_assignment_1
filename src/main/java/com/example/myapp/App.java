@@ -5,18 +5,19 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.example.aws.ec2.Ec2Operations;
 import com.example.aws.s3.S3BucketOps;
 import com.example.aws.sqs.MessageOperations;
 import com.example.aws.sqs.QueueOperations;
 import com.example.instances.Worker;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
-
 
 public class App {
 
@@ -35,13 +36,13 @@ public class App {
         Region region = Region.US_WEST_2;
         S3Client s3 = S3Client.builder().region(region).build();
 
-        String bucket = "com/dsp" + System.currentTimeMillis();
+        String bucket = "dsp" + System.currentTimeMillis();
         String key = "input-file";
         System.exit(0);
 
 
         S3BucketOps.createBucket(s3, bucket, region);
-        System.out.println("Uploading object...");
+        System.out.println("Uploading Input file...");
 
         s3.putObject(PutObjectRequest.builder().bucket(bucket).key(key)
                         .build(),
@@ -52,11 +53,11 @@ public class App {
 
         String queueName = "queue" + System.currentTimeMillis();
 
-        SqsClient sqsClient = SqsClient.builder()
+        SqsClient sqs = SqsClient.builder()
                 .region(region)
                 .build();
 
-        String queueURL = QueueOperations.createQueue(sqsClient, queueName);
+        String queueURL = QueueOperations.createQueue(sqs, queueName);
 
         Map<String, MessageAttributeValue> messageAttributeValueMap = new HashMap<>();
         messageAttributeValueMap.put("n", MessageAttributeValue.builder().stringValue(args[3]).build());
@@ -65,16 +66,21 @@ public class App {
             put("bucket", bucket);
             put("key", key);
         }}.toString();
-        MessageOperations.sendMessage(sqsClient, queueURL, messageBody, messageAttributeValueMap);
+        MessageOperations.sendMessage(sqs, queueURL, messageBody, messageAttributeValueMap);
 
-        sqsClient.close();
+        Ec2Client ec2 = Ec2Client.builder().region(region).build();
 
-        // start manager if exists else create one and start
+        String managerInstanceId = Ec2Operations.getManagerInstance(ec2);
+        Ec2Operations.startInstance(ec2, managerInstanceId);
+
+
 
 //        cleanUp(s3, bucket, key);
 
-        System.out.println("Closing the connection to {S3}");
+        System.out.println("Closing the connection to {S3, Sqs, Ec2}");
         s3.close();
+        sqs.close();
+        ec2.close();
         System.out.println("Connection closed");
         System.out.println("Exiting...");
     }

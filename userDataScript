@@ -1,0 +1,10 @@
+#!/bin/bash
+apt upgrade && apt update -y
+
+# install jdk, stanford-parser,
+
+# get the jar file of the local app from s3
+# get the input file file from s3
+
+# java -jar myapp.jar input.txt output.txt 5 [terminate]
+
