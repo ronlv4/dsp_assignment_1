@@ -1,10 +1,20 @@
 #!/bin/bash
-apt upgrade && apt update -y
+apt update && apt upgrade -y
 
-# install jdk, stanford-parser,
+wget https://download.oracle.com/java/18/latest/jdk-18_linux-x64_bin.tar.gz
+
+mv jdk-18_linux-x64_bin.tar /opt
+cd /opt
+
+tar zxvf jdk-18_linux-x64_bin.tar
+
+rm jdk-18_linux-x64_bin.tar
+
+export JAVA_HOME=/opt/jdk-18.0.1
+export PATH=$JAVA_HOME/bin:$PATH
+
 
 # get the jar file of the local app from s3
 # get the input file file from s3
 
 # java -jar myapp.jar input.txt output.txt 5 [terminate]
-

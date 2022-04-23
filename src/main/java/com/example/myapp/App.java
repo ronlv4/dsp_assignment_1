@@ -38,8 +38,6 @@ public class App {
 
         String bucket = "dsp" + System.currentTimeMillis();
         String key = "input-file";
-        System.exit(0);
-
 
         S3BucketOps.createBucket(s3, bucket, region);
         System.out.println("Uploading Input file...");

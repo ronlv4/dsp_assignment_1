@@ -144,7 +144,7 @@ public class Ec2Operations {
 
         } catch (Ec2Exception e) {
             System.err.println(e.awsErrorDetails().errorMessage());
-            return null;
+            return "";
         }
     }
 }
