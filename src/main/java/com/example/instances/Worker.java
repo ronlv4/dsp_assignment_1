@@ -1,10 +1,7 @@
 package com.example.instances;
 
 import com.example.aws.sqs.MessageOperations;
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.ling.Sentence;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
-import edu.stanford.nlp.trees.*;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -18,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class Worker {
@@ -85,10 +81,23 @@ public class Worker {
 
         S3Client s3 = S3Client.builder().region(region).build();
 
-        ListQueuesResponse listQueuesResponse = sqsClient.listQueues(ListQueuesRequest.builder().queueNamePrefix("input").build());
-        for (String queueUrl : listQueuesResponse.queueUrls()) {
-            ReceiveMessageResponse receiveMessageResponse = sqsClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl).build());
-            if (receiveMessageResponse.hasMessages()) {
+        ListQueuesResponse listQueuesResponse = sqsClient.listQueues(
+                ListQueuesRequest
+                        .builder()
+                        .queueNamePrefix("input")
+                        .build());
+        while (Thread.currentThread().isInterrupted()) {
+            for (String queueUrl : listQueuesResponse.queueUrls()) {
+
+                ReceiveMessageResponse receiveMessageResponse = sqsClient.receiveMessage(
+                        ReceiveMessageRequest
+                                .builder()
+                                .queueUrl(queueUrl)
+                                .build());
+
+                if (!receiveMessageResponse.hasMessages())
+                    continue;
+
                 Message message = receiveMessageResponse.messages().get(0);
                 String outputQueueUrl = sqsClient.listQueues(ListQueuesRequest.builder().queueNamePrefix("output").maxResults(1).build()).queueUrls().get(0);
                 try {
@@ -112,13 +121,13 @@ public class Worker {
                     }};
 
                     MessageOperations.sendMessage(sqsClient, outputQueueUrl, "Success", messageAttributeValueMap);
-                } catch (Exception e){
+                } catch (Exception e) {
                     MessageOperations.sendMessage(sqsClient, outputQueueUrl, "Error"); // #TODO Send description of error
                 }
 
                 receiveMessageResponse.messages().remove(0);
-                break;
             }
         }
+        s3.close();
     }
 }
