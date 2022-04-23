@@ -1,7 +1,12 @@
 package com.example.myapp;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,6 +15,7 @@ import com.example.aws.s3.S3BucketOps;
 import com.example.aws.sqs.MessageOperations;
 import com.example.aws.sqs.QueueOperations;
 import com.example.instances.Worker;
+import edu.stanford.nlp.util.logging.StanfordRedwoodConfiguration;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -18,22 +24,28 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
+import software.amazon.awssdk.utils.IoUtils;
+
 
 public class App {
 
     public static void main(String[] args) throws IOException {
-
-        Worker.analizeText("input.txt");
+        String userDataScript = "";
+        byte[] userDataScriptAsBytes = {};
+        try {
+            File initialFile = new File("Worker/userDataScript");
+            InputStream targetStream = Files.newInputStream(initialFile.toPath());
+            userDataScript = IoUtils.toUtf8String(targetStream);
+            userDataScriptAsBytes = Base64.getEncoder().encode(userDataScript.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException ignored) {
+        }
+//        if (args.length == 0)
+//            System.exit(0);
+        Region region = Region.US_WEST_2;
+        Ec2Client ec2Client = Ec2Client.builder().region(region).build();
+        Ec2Operations.runInstanceByMoshe(ec2Client, "Test", "ami-02b92c281a4d3dc79", new String(userDataScriptAsBytes));
         System.exit(0);
 
-
-        if (args.length == 0)
-            System.exit(0);
-        String[] myArgs2 = {"edu.stanford.nlp.parser.nndep.DependencyParser", "input.txt"};
-//        DependencyParser.main(myArgs);
-//        java -cp stanford-parser.jar:. -mx200m edu.stanford.nlp.parser.lexparser.LexicalizedParser -retainTMPSubcategories -outputFormat "wordsAndTags,penn,typedDependencies" englishPCFG.ser.gz input.txt
-//        "-retainTMPSubcategories", "-outputFormat", "wordsAndTags,penn,typedDependencies",
-        Region region = Region.US_WEST_2;
         S3Client s3 = S3Client.builder().region(region).build();
 
         String bucket = "dsp" + System.currentTimeMillis();

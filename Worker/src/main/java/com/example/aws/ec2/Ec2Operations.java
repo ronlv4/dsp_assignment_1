@@ -6,22 +6,24 @@ import software.amazon.awssdk.services.ec2.model.*;
 
 public class Ec2Operations {
 
-    public static void runInstanceByMoshe(Ec2Client ec2, String name, String amiId) {
+    public static void runInstanceByMoshe(Ec2Client ec2, String name, String amiId, String encodedUserData) {
         IamInstanceProfileSpecification iamInstanceProfile = IamInstanceProfileSpecification.builder()
                 .name("LabInstanceProfile")
                 .build();
 
         RunInstancesRequest runRequest = RunInstancesRequest.builder()
-                .imageId("ami-0ed9277fb7eb570c9")
+                .imageId(amiId)
                 .instanceType(InstanceType.T2_MICRO)
                 .maxCount(1)
                 .minCount(1)
-                .keyName("Management")
-//               .userData(encodedUserData)
+                .keyName("testKey")
+               .userData(encodedUserData)
 //               .securityGroups(securityGroups)
                 .iamInstanceProfile(iamInstanceProfile)
 //               .tagSpecifications(myTags)
                 .build();
+
+        ec2.runInstances(runRequest);
     }
 
     public static String createEC2Instance(Ec2Client ec2, String name, String amiId) {
