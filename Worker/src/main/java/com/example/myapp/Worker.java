@@ -94,7 +94,7 @@ public class Worker {
                         .builder()
                         .queueNamePrefix("input")
                         .build());
-        while (Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted()) {
             for (String queueUrl : listQueuesResponse.queueUrls()) {
 
                 ReceiveMessageResponse receiveMessageResponse = sqsClient.receiveMessage(
