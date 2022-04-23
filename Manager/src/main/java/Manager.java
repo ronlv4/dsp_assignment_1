@@ -3,7 +3,7 @@ import software.amazon.awssdk.services.sqs.model.Message;
 
 import java.util.Objects;
 
-public class Main {
+public class Manager {
 
     public static void main(String[] args){
         String bucket = "shir11226543666123";

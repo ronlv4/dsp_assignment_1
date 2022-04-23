@@ -1,24 +1,32 @@
-package com.example.instances;
+package com.example.myapp;
 
-import com.example.aws.sqs.MessageOperations;
-import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
-import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.*;
-
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Worker {
+import com.example.aws.ec2.Ec2Operations;
+import com.example.aws.s3.S3BucketOps;
+import com.example.aws.sqs.MessageOperations;
+import com.example.aws.sqs.QueueOperations;
+import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.*;
 
+
+public class Worker {
     public enum AnalysisType {
         POS,
         CONSTITUENCY,
