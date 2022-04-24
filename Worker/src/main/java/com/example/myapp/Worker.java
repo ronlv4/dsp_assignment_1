@@ -1,6 +1,8 @@
 package com.example.myapp;
 
 import java.io.File;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,7 +22,8 @@ public class Worker {
         String analyisType = message.messageAttributes().get("analysis-type").stringValue();
         String fileUrl = message.messageAttributes().get("url").stringValue();
 
-        System.out.printf("analyzing file from url %s as %s", fileUrl, analyisType);
+        System.out.printf("analyzing file from url %s as %s\n", fileUrl, analyisType);
+        System.out.printf("running from %s\n", FileSystems.getDefault().getPath(".").toAbsolutePath());
         return analyzeText(fileUrl, analyisType);
     }
 
