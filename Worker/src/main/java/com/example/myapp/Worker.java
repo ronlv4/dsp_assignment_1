@@ -61,8 +61,8 @@ public class Worker {
         sqs.createQueue(CreateQueueRequest.builder().queueName("output-1").build());
         Map<String, MessageAttributeValue> tempMap = new HashMap<>();
         tempMap.put("bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").dataType("String").build());
-        tempMap.put("analysis-type", MessageAttributeValue.builder().stringValue("CONSTITUENCY").build());
-        tempMap.put("url", MessageAttributeValue.builder().stringValue("https://www.gutenberg.org/files/1659/1659-0.txt").build());
+        tempMap.put("analysis-type", MessageAttributeValue.builder().dataType("String").stringValue("CONSTITUENCY").build());
+        tempMap.put("url", MessageAttributeValue.builder().dataType("String").stringValue("https://www.gutenberg.org/files/1659/1659-0.txt").build());
         sqs.sendMessage(SendMessageRequest.builder().queueUrl(createQueueResponse.queueUrl()).messageBody("some message").messageAttributes(tempMap).build());
 
 
