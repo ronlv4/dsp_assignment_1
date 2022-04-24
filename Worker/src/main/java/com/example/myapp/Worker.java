@@ -36,6 +36,7 @@ public class Worker {
 
         String[] parserArgs = {
                 "-model", "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz",
+                "-maxLength", "80",
                 "-outputFormat", outputFormat,
                 "-writeOutputFiles",
                 "-outputFilesDirectory", outputFileDirectory,
