@@ -17,8 +17,8 @@ import software.amazon.awssdk.services.sqs.model.*;
 public class Worker {
 
     private static File processMessage(Message message) {
-        String analyisType = String.valueOf(message.messageAttributes().get("analysis-type"));
-        String fileUrl = String.valueOf(message.messageAttributes().get("url"));
+        String analyisType = message.messageAttributes().get("analysis-type").stringValue();
+        String fileUrl = message.messageAttributes().get("url").stringValue();
 
         System.out.printf("analyzing file from url %s as %s", fileUrl, analyisType);
         return analyzeText(fileUrl, analyisType);
@@ -89,7 +89,7 @@ public class Worker {
                         .receiveMessage(ReceiveMessageRequest
                                 .builder()
                                 .queueUrl(queueUrl)
-                                .messageAttributeNames("url")
+                                .messageAttributeNames("url", "analysis-type", "bucket")
                                 .build());
 
                 if (!receiveMessageResponse.hasMessages())
@@ -114,7 +114,7 @@ public class Worker {
 
                 try {
                     File outputFile = processMessage(message);
-                    String outputBucket = String.valueOf(message.messageAttributes().get("bucket"));
+                    String outputBucket = message.messageAttributes().get("bucket").stringValue();
                     System.out.println("uploading file to bucket: " + outputBucket);
                     PutObjectResponse putObjectResponse = s3.putObject(PutObjectRequest.builder().
                                     bucket(outputBucket)
