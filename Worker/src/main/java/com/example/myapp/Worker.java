@@ -69,7 +69,7 @@ public class Worker {
         Map<String, MessageAttributeValue> tempMap = new HashMap<>();
         tempMap.put("bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").dataType("String").build());
         tempMap.put("analysis-type", MessageAttributeValue.builder().dataType("String").stringValue("CONSTITUENCY").build());
-        tempMap.put("url", MessageAttributeValue.builder().dataType("String").stringValue("Worker/input.txt").build());
+        tempMap.put("url", MessageAttributeValue.builder().dataType("String").stringValue("input.txt").build());
         sqs.sendMessage(SendMessageRequest.builder().queueUrl(createQueueResponse.queueUrl()).messageBody("some message").messageAttributes(tempMap).build());
 
 
