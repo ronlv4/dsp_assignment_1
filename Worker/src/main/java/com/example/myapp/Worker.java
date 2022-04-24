@@ -46,7 +46,6 @@ public class Worker {
     }
 
     public static void main(String[] args) {
-        analyzeText("Worker/input.txt", "POS");
         boolean shouldTerminate = false;
         Region region = Region.US_WEST_2;
 
@@ -57,6 +56,16 @@ public class Worker {
         S3Client s3 = S3Client.builder()
                 .region(region)
                 .build();
+
+        CreateQueueResponse createQueueResponse = sqs.createQueue(CreateQueueRequest.builder().queueName("input-1").build());
+        sqs.createQueue(CreateQueueRequest.builder().queueName("output-1").build());
+        Map<String, MessageAttributeValue> tempMap = new HashMap<>();
+        tempMap.put("bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").build());
+        tempMap.put("analysis-type", MessageAttributeValue.builder().stringValue("CONSTITUENCY").build());
+        tempMap.put("url", MessageAttributeValue.builder().stringValue("https://www.gutenberg.org/files/1659/1659-0.txt").build());
+        sqs.sendMessage(SendMessageRequest.builder().queueUrl(createQueueResponse.queueUrl()).messageAttributes(tempMap).build());
+
+
         ListQueuesResponse listQueuesResponse = sqs
                 .listQueues(ListQueuesRequest
                         .builder()
@@ -117,6 +126,7 @@ public class Worker {
                 }
 
                 receiveMessageResponse.messages().remove(message);
+                shouldTerminate = true;
             }
         }
 
