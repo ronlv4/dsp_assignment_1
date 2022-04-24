@@ -89,6 +89,7 @@ public class Worker {
                         .receiveMessage(ReceiveMessageRequest
                                 .builder()
                                 .queueUrl(queueUrl)
+                                .attributeNames(QueueAttributeName.ALL)
                                 .build());
 
                 if (!receiveMessageResponse.hasMessages())
