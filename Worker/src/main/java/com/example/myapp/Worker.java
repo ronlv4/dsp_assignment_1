@@ -4,22 +4,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.example.aws.ec2.Ec2Operations;
-import com.example.aws.s3.S3BucketOps;
 import com.example.aws.sqs.MessageOperations;
-import com.example.aws.sqs.QueueOperations;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -51,10 +45,10 @@ public class Worker {
 //            throw new RuntimeException(e);
 //        }
 //        }
-        return analizeText(fileUrl);
+        return analizeText(fileUrl, analyisType);
     }
 
-    public static File analizeText(String url) {
+    public static File analizeText(String url, String analysisType) {
 //        {
 //            LexicalizedParser lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz");
 //            lp.setOptionFlags("-maxLength", "80", "-retainTmpSubcategories", "-outputFilesDirectory", ".");
@@ -87,18 +81,21 @@ public class Worker {
                 .region(region)
                 .build();
 
-        S3Client s3 = S3Client.builder().region(region).build();
+        S3Client s3 = S3Client.builder()
+                .region(region)
+                .build();
 
-        ListQueuesResponse listQueuesResponse = sqsClient.listQueues(
-                ListQueuesRequest
+        ListQueuesResponse listQueuesResponse = sqsClient
+                .listQueues(ListQueuesRequest
                         .builder()
                         .queueNamePrefix("input")
                         .build());
+
         while (!Thread.currentThread().isInterrupted()) {
             for (String queueUrl : listQueuesResponse.queueUrls()) {
 
-                ReceiveMessageResponse receiveMessageResponse = sqsClient.receiveMessage(
-                        ReceiveMessageRequest
+                ReceiveMessageResponse receiveMessageResponse = sqsClient
+                        .receiveMessage(ReceiveMessageRequest
                                 .builder()
                                 .queueUrl(queueUrl)
                                 .build());
@@ -107,7 +104,15 @@ public class Worker {
                     continue;
 
                 Message message = receiveMessageResponse.messages().get(0);
-                String outputQueueUrl = sqsClient.listQueues(ListQueuesRequest.builder().queueNamePrefix("output").maxResults(1).build()).queueUrls().get(0);
+                String outputQueueUrl = sqsClient
+                        .listQueues(ListQueuesRequest
+                                .builder()
+                                .queueNamePrefix("output")
+                                .maxResults(1)
+                                .build())
+                        .queueUrls()
+                        .get(0);
+
                 try {
                     File outputFile = processMessage(message);
                     String outputBucket = String.valueOf(message.messageAttributes().get("bucket"));
