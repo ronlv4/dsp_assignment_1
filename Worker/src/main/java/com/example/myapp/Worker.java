@@ -89,7 +89,7 @@ public class Worker {
                         .receiveMessage(ReceiveMessageRequest
                                 .builder()
                                 .queueUrl(queueUrl)
-                                .attributeNames(QueueAttributeName.ALL)
+                                .messageAttributeNames("url")
                                 .build());
 
                 if (!receiveMessageResponse.hasMessages())
@@ -136,8 +136,10 @@ public class Worker {
                         put("analysis-type", message.messageAttributes().get("analysis-type"));
                     }};
 
+                    sqs.deleteMessage(DeleteMessageRequest.builder().queueUrl(queueUrl).receiptHandle(message.receiptHandle()).build());
                     MessageOperations.sendMessage(sqs, outputQueueUrl, "Success", messageAttributeValueMap);
                 } catch (Exception e) {
+                    sqs.deleteMessage(DeleteMessageRequest.builder().queueUrl(queueUrl).receiptHandle(message.receiptHandle()).build());
                     MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
                 }
                 shouldTerminate = true;
