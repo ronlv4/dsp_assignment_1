@@ -19,6 +19,8 @@ public class Worker {
     private static File processMessage(Message message) {
         String analyisType = String.valueOf(message.messageAttributes().get("analysis-type"));
         String fileUrl = String.valueOf(message.messageAttributes().get("url"));
+
+        System.out.printf("analyzing file from url %s as %s", fileUrl, analyisType);
         return analyzeText(fileUrl, analyisType);
     }
 
@@ -42,6 +44,7 @@ public class Worker {
 //                "-outputFilesExtension", "txt",
                 url};
         LexicalizedParser.main(parserArgs);
+        System.out.println("\nfinished analyzing\n");
         return new File(outputFileDirectory);
     }
 
@@ -72,6 +75,13 @@ public class Worker {
                         .queueNamePrefix("input")
                         .build());
 
+        System.out.println("requested list queue:\n");
+        System.out.println("found:\n");
+        for (String queueUrl : listQueuesResponse.queueUrls()) {
+            System.out.println(queueUrl + "\n");
+        }
+
+
         while (!shouldTerminate) {
             for (String queueUrl : listQueuesResponse.queueUrls()) {
 
@@ -85,6 +95,8 @@ public class Worker {
                     continue;
 
                 Message message = receiveMessageResponse.messages().get(0);
+                System.out.println("recieved message\n");
+                System.out.println("body: " + message.body());
                 if (message.body().equals("terminate")) {
                     shouldTerminate = true;
                     break;
@@ -102,12 +114,15 @@ public class Worker {
                 try {
                     File outputFile = processMessage(message);
                     String outputBucket = String.valueOf(message.messageAttributes().get("bucket"));
+                    System.out.println("uploading file to bucket: " + outputBucket);
                     PutObjectResponse putObjectResponse = s3.putObject(PutObjectRequest.builder().
                                     bucket(outputBucket)
                                     .key(message.messageId())
                                     .build(),
                             RequestBody.fromFile(outputFile));
                     outputFile.delete();
+
+                    System.out.println("\nsending done message\n");
                     Map<String, MessageAttributeValue> messageAttributeValueMap = new HashMap<String, MessageAttributeValue>() {{
                         put("original-url", message.messageAttributes().get("url"));
                         put("object-url", MessageAttributeValue.builder()
@@ -127,6 +142,7 @@ public class Worker {
                 shouldTerminate = true;
             }
         }
+        System.out.println("\nclosing resources\n");
 
         s3.close();
         sqs.close();
