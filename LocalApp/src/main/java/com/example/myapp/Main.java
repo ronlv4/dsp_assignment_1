@@ -44,7 +44,7 @@ public class Main {
         Integer n = Integer.parseInt(args[2]);
         boolean terminate = args.length > 3;
 
-        byte[] userDataScriptAsBytes = Files.readAllBytes(FileSystems.getDefault().getPath(inputFileName));
+        byte[] userDataScriptAsBytes = Files.readAllBytes(FileSystems.getDefault().getPath("LocalApp/localAppUserData"));
         String encodedUserDataScript = Base64.getEncoder().encodeToString(userDataScriptAsBytes);
 
         System.out.println(encodedUserDataScript);
