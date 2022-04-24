@@ -1,12 +1,6 @@
 package com.example.myapp;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,80 +15,58 @@ import software.amazon.awssdk.services.sqs.model.*;
 
 
 public class Worker {
-    public enum AnalysisType {
-        POS,
-        CONSTITUENCY,
-        DEPENDENCY
-    }
-
-    public static File downloadTextFile(URL url) throws IOException {
-        InputStream in = url.openStream();
-        File outputFile = new File("output-file.txt");
-        Files.copy(in, Paths.get(outputFile.toURI()), StandardCopyOption.REPLACE_EXISTING);
-        return outputFile;
-    }
 
     private static File processMessage(Message message) {
         String analyisType = String.valueOf(message.messageAttributes().get("analysis-type"));
         String fileUrl = String.valueOf(message.messageAttributes().get("url"));
-//        {
-//        File textFile = null;
-//        try {
-//            textFile = downloadTextFile(new URL(fileUrl));
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//        }
-        return analizeText(fileUrl, analyisType);
+        return analyzeText(fileUrl, analyisType);
     }
 
-    public static File analizeText(String url, String analysisType) {
-//        {
-//            LexicalizedParser lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz");
-//            lp.setOptionFlags("-maxLength", "80", "-retainTmpSubcategories", "-outputFilesDirectory", ".");
-//            String[] sent = {"This", "is", "an", "easy", "sentence", "."};
-//            List<CoreLabel> rawWords = Sentence.toCoreLabelList(sent);
-//            Tree parse = lp.apply(rawWords);
-//            parse.pennPrint();
-//            System.out.println();
-//            TreebankLanguagePack tlp = new PennTreebankLanguagePack();
-//            GrammaticalStructureFactory gsf = tlp.grammaticalStructureFactory();
-//            GrammaticalStructure gs = gsf.newGrammaticalStructure(parse);
-//            List<TypedDependency> tdl = gs.typedDependenciesCCprocessed();
-//            System.out.println(tdl);
-//            System.out.println();
-//            TreePrint tp = new TreePrint("penn,typedDependenciesCollapsed");
-//            tp.printTree(parse);
-//        }
-        {
-            String[] myArgs = {"-model", "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz", "-saveToTextFile", "./output.txt", "-retainTMPSubcategories", "-outputFormat", "wordsAndTags,penn,typedDependencies", url};
-            LexicalizedParser.main(myArgs);
-        }
-        System.exit(0);
-        return new File("sd");
+    public static File analyzeText(String url, String analysisType) {
+        String outputFormat;
+        String outputFileDirectory = ".";
+        if (analysisType.equals("DEPENDENCY"))
+            outputFormat = "typedDependencies";
+        else if (analysisType.equals("CONSTITUENCY"))
+            outputFormat = "penn";
+        else
+            outputFormat = "wordsAndTags";
+
+        String[] parserArgs = {
+                "-model", "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz",
+                "-outputFormat", outputFormat,
+                "-writeOutputFiles",
+                "-outputFilesDirectory", outputFileDirectory,
+//                "-outputFilesPrefix", "output4",  // currently on Test option - not production
+//                "-retainTMPSubcategories",
+//                "-outputFilesExtension", "txt",
+                url};
+        LexicalizedParser.main(parserArgs);
+        return new File(outputFileDirectory);
     }
 
     public static void main(String[] args) {
+        analyzeText("Worker/input.txt", "POS");
+        boolean shouldTerminate = false;
         Region region = Region.US_WEST_2;
 
-        SqsClient sqsClient = SqsClient.builder()
+        SqsClient sqs = SqsClient.builder()
                 .region(region)
                 .build();
 
         S3Client s3 = S3Client.builder()
                 .region(region)
                 .build();
-
-        ListQueuesResponse listQueuesResponse = sqsClient
+        ListQueuesResponse listQueuesResponse = sqs
                 .listQueues(ListQueuesRequest
                         .builder()
                         .queueNamePrefix("input")
                         .build());
 
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!shouldTerminate) {
             for (String queueUrl : listQueuesResponse.queueUrls()) {
 
-                ReceiveMessageResponse receiveMessageResponse = sqsClient
+                ReceiveMessageResponse receiveMessageResponse = sqs
                         .receiveMessage(ReceiveMessageRequest
                                 .builder()
                                 .queueUrl(queueUrl)
@@ -104,7 +76,12 @@ public class Worker {
                     continue;
 
                 Message message = receiveMessageResponse.messages().get(0);
-                String outputQueueUrl = sqsClient
+                if (message.body().equals("terminate")) {
+                    shouldTerminate = true;
+                    break;
+                }
+
+                String outputQueueUrl = sqs
                         .listQueues(ListQueuesRequest
                                 .builder()
                                 .queueNamePrefix("output")
@@ -121,6 +98,7 @@ public class Worker {
                                     .key(message.messageId())
                                     .build(),
                             RequestBody.fromFile(outputFile));
+                    outputFile.delete();
                     Map<String, MessageAttributeValue> messageAttributeValueMap = new HashMap<String, MessageAttributeValue>() {{
                         put("original-url", message.messageAttributes().get("url"));
                         put("object-url", MessageAttributeValue.builder()
@@ -133,14 +111,16 @@ public class Worker {
                         put("analysis-type", message.messageAttributes().get("analysis-type"));
                     }};
 
-                    MessageOperations.sendMessage(sqsClient, outputQueueUrl, "Success", messageAttributeValueMap);
+                    MessageOperations.sendMessage(sqs, outputQueueUrl, "Success", messageAttributeValueMap);
                 } catch (Exception e) {
-                    MessageOperations.sendMessage(sqsClient, outputQueueUrl, "Error"); // #TODO Send description of error
+                    MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
                 }
 
-                receiveMessageResponse.messages().remove(0);
+                receiveMessageResponse.messages().remove(message);
             }
         }
+
         s3.close();
+        sqs.close();
     }
 }
