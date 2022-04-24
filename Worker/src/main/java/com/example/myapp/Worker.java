@@ -124,8 +124,6 @@ public class Worker {
                 } catch (Exception e) {
                     MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
                 }
-
-                receiveMessageResponse.messages().remove(0);
                 shouldTerminate = true;
             }
         }
