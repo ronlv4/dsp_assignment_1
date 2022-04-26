@@ -1,9 +1,15 @@
 package com.example.myapp;
 
-import java.io.File;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 import com.example.aws.sqs.MessageOperations;
@@ -17,19 +23,36 @@ import software.amazon.awssdk.services.sqs.model.*;
 
 
 public class Worker {
-
-    private static File processMessage(Message message) {
-        String analyisType = message.messageAttributes().get("analysis-type").stringValue();
-        String fileUrl = message.messageAttributes().get("url").stringValue();
-
-        System.out.printf("analyzing file from url %s as %s\n", fileUrl, analyisType);
-        System.out.printf("running from %s\n", FileSystems.getDefault().getPath(".").toAbsolutePath());
-        return analyzeText(fileUrl, analyisType);
+    public static String donwloadFile(URL url) throws IOException {
+        return donwloadFile(url, "text" + System.currentTimeMillis());
     }
 
-    public static File analyzeText(String url, String analysisType) {
+    public static String donwloadFile(URL url, String outputFilePath) throws IOException {
+        ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+        FileOutputStream fileOutputStream = new FileOutputStream(outputFilePath);
+        FileChannel fileChannel = fileOutputStream.getChannel();
+        fileOutputStream.getChannel()
+                .transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+        return outputFilePath;
+
+    }
+
+    private static File processMessage(Message message) throws IOException {
+        System.out.println("Starting to process message\n");
+        String analyisType = message.messageAttributes().get("analysis-type").stringValue();
+        String fileUrl = message.messageAttributes().get("url").stringValue();
+        System.out.println("Downloading text file\n");
+        String filePath = donwloadFile(new URL(fileUrl));
+        System.out.printf("Downloaded file path is %s\n", filePath);
+//        System.out.printf("analyzing file from url %s as %s\n", fileUrl, analyisType);
+        System.out.printf("running from %s\n", FileSystems.getDefault().getPath(".").toAbsolutePath());
+        return analyzeText(filePath, analyisType);
+    }
+
+    public static File analyzeText(String filePath, String analysisType) {
         String outputFormat;
         String outputFileDirectory = ".";
+        String outputFileExtension = "txt";
         if (analysisType.equals("DEPENDENCY"))
             outputFormat = "typedDependencies";
         else if (analysisType.equals("CONSTITUENCY"))
@@ -41,18 +64,25 @@ public class Worker {
                 "-model", "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz",
                 "-maxLength", "80",
                 "-outputFormat", outputFormat,
+//                "-output", "some.txt",
                 "-writeOutputFiles",
-                "-outputFilesDirectory", outputFileDirectory,
+                "-outputFilesPrefix", "aaa",
+//                "-outputFilesDirectory", outputFileDirectory,
 //                "-outputFilesPrefix", "output4",  // currently on Test option - not production
 //                "-retainTMPSubcategories",
-//                "-outputFilesExtension", "txt",
-                url};
+                "-outputFilesExtension", outputFileExtension,
+                filePath};
         LexicalizedParser.main(parserArgs);
         System.out.println("\nfinished analyzing\n");
-        return new File(outputFileDirectory);
+        deleteFile(new File(filePath));
+        return new File(outputFileDirectory + "/" + filePath + "." + outputFileExtension);
     }
 
-    public static void main(String[] args) {
+    private static boolean deleteFile(File file) {
+        return file.delete();
+    }
+
+    public static void main(String[] args) throws IOException {
         boolean shouldTerminate = false;
         Region region = Region.US_WEST_2;
 
@@ -67,10 +97,10 @@ public class Worker {
         CreateQueueResponse createQueueResponse = sqs.createQueue(CreateQueueRequest.builder().queueName("input-1").build());
         sqs.createQueue(CreateQueueRequest.builder().queueName("output-1").build());
         Map<String, MessageAttributeValue> tempMap = new HashMap<>();
-        tempMap.put("bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").dataType("String").build());
+        tempMap.put("output-bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").dataType("String").build());
         tempMap.put("analysis-type", MessageAttributeValue.builder().dataType("String").stringValue("CONSTITUENCY").build());
-        tempMap.put("url", MessageAttributeValue.builder().dataType("String").stringValue("input.txt").build());
-        sqs.sendMessage(SendMessageRequest.builder().queueUrl(createQueueResponse.queueUrl()).messageBody("some message").messageAttributes(tempMap).build());
+        tempMap.put("url", MessageAttributeValue.builder().dataType("String").stringValue("https://www.w3.org/TR/PNG/iso_8859-1.txt").build());
+        sqs.sendMessage(SendMessageRequest.builder().queueUrl(createQueueResponse.queueUrl()).messageBody("some non-empty message").messageAttributes(tempMap).build());
 
 
         ListQueuesResponse listQueuesResponse = sqs
@@ -93,7 +123,7 @@ public class Worker {
                         .receiveMessage(ReceiveMessageRequest
                                 .builder()
                                 .queueUrl(queueUrl)
-                                .messageAttributeNames("url", "analysis-type", "bucket")
+                                .messageAttributeNames("url", "analysis-type", "output-bucket")
                                 .build());
 
                 if (!receiveMessageResponse.hasMessages())
@@ -118,19 +148,26 @@ public class Worker {
 
                 try {
                     File outputFile = processMessage(message);
-                    String outputBucket = message.messageAttributes().get("bucket").stringValue();
-                    System.out.println("uploading file to bucket: " + outputBucket);
-                    PutObjectResponse putObjectResponse = s3.putObject(PutObjectRequest.builder().
-                                    bucket(outputBucket)
+                    String outputBucket = message.messageAttributes().get("output-bucket").stringValue();
+                    System.out.printf("uploading file %s to bucket: %s\n", outputFile.getAbsolutePath(),outputBucket);
+                    PutObjectResponse putObjectResponse = s3.putObject(PutObjectRequest.builder()
+                                    .bucket(outputBucket)
                                     .key(message.messageId())
                                     .build(),
                             RequestBody.fromFile(outputFile));
-                    outputFile.delete();
+                    System.out.println("deleting file on " + outputFile.getAbsolutePath());
+                    try {
+                        outputFile.delete();
+                        System.out.println("file deleted");
+                    }catch (Exception e){
+                        System.out.println("failed to delete file");
+                    }
 
                     System.out.println("\nsending done message\n");
                     Map<String, MessageAttributeValue> messageAttributeValueMap = new HashMap<String, MessageAttributeValue>() {{
                         put("original-url", message.messageAttributes().get("url"));
                         put("object-url", MessageAttributeValue.builder()
+                                .dataType("String")
                                 .stringValue(s3.utilities().getUrl(GetUrlRequest
                                         .builder()
                                         .bucket(outputBucket)
@@ -140,10 +177,12 @@ public class Worker {
                         put("analysis-type", message.messageAttributes().get("analysis-type"));
                     }};
 
-                    sqs.deleteMessage(DeleteMessageRequest.builder().queueUrl(queueUrl).receiptHandle(message.receiptHandle()).build());
+                    MessageOperations.deleteMessage(sqs, queueUrl, message);
                     MessageOperations.sendMessage(sqs, outputQueueUrl, "Success", messageAttributeValueMap);
+                    System.out.println("finished successfully");
                 } catch (Exception e) {
                     sqs.deleteMessage(DeleteMessageRequest.builder().queueUrl(queueUrl).receiptHandle(message.receiptHandle()).build());
+                    System.out.println(e.getMessage());
                     MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
                 }
                 shouldTerminate = true;

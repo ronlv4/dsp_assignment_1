@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MessageOperations {
-    public static void sendMessage(SqsClient sqsClient, SendMessageRequest messageRequest){
+    public static void sendMessage(SqsClient sqsClient, SendMessageRequest messageRequest) {
         sqsClient.sendMessage(messageRequest);
     }
 
@@ -31,7 +31,6 @@ public class MessageOperations {
                 .delaySeconds(10)
                 .build());
     }
-
 
 
     public static void sendBatchMessages(SqsClient sqsClient, String queueUrl) {
@@ -94,24 +93,28 @@ public class MessageOperations {
         }
     }
 
-    public static void deleteMessages(SqsClient sqsClient, String queueUrl, List<Message> messages) {
-        System.out.println("\nDelete Messages");
-        // snippet-start:[sqs.java2.sqs_example.delete_message]
-
+    public static void deleteMessage(SqsClient sqsClient, String queueUrl, Message message) {
         try {
-            for (Message message : messages) {
-                DeleteMessageRequest deleteMessageRequest = DeleteMessageRequest.builder()
-                        .queueUrl(queueUrl)
-                        .receiptHandle(message.receiptHandle())
-                        .build();
-                sqsClient.deleteMessage(deleteMessageRequest);
-            }
-            // snippet-end:[sqs.java2.sqs_example.delete_message]
-
+            DeleteMessageRequest deleteMessageRequest = DeleteMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .receiptHandle(message.receiptHandle())
+                    .build();
+            sqsClient.deleteMessage(deleteMessageRequest);
         } catch (SqsException e) {
             System.err.println(e.awsErrorDetails().errorMessage());
             System.exit(1);
         }
+    }
+
+
+    public static void deleteMessages(SqsClient sqsClient, String queueUrl, List<Message> messages) {
+        System.out.println("\nDelete Messages");
+        // snippet-start:[sqs.java2.sqs_example.delete_message]
+
+        for (Message message : messages) {
+            deleteMessage(sqsClient, queueUrl, message);
+        }
+        // snippet-end:[sqs.java2.sqs_example.delete_message]
     }
 
 
