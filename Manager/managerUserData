@@ -1,15 +1,17 @@
-#!/bin/bash
+#!/bin/bash -xe
+
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 sudo yum install java -y
 sudo yum install maven -y
 
-#sudo echo "export JAVA_HOME=/opt/jdk-18.0.1" >> /etc/profile
-#sudo echo "export PATH=$PATH:$JAVA_HOME/bin" >> /etc/profile
+cd /home/ec2-user
+
+aws s3 cp s3://dspbucket12345/Worker.tar /home/ec2-user/Worker.tar
+
+tar -xf Worker.tar
 
 mvn package
 
 sudo mvn exec:java -Dexec.mainClass="com.example.myapp.Worker"
 
-aws s3 cp s3://dspbucket12345/myapp-1.0.jar ./Worker.jar
-
-java -jar Worker.jar

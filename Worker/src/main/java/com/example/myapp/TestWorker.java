@@ -4,6 +4,7 @@ import com.example.aws.ec2.Ec2Operations;
 import com.example.aws.sqs.MessageOperations;
 import com.example.aws.sqs.QueueOperations;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.regions.servicemetadata.IotanalyticsServiceMetadata;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
@@ -25,7 +26,7 @@ public class TestWorker {
 
         Ec2Client ec2 = Ec2Client.builder().region(region).build();
 
-        byte[] userDataScriptAsBytes = Files.readAllBytes(FileSystems.getDefault().getPath("Manager/managerUserData"));
+        byte[] userDataScriptAsBytes = Files.readAllBytes(FileSystems.getDefault().getPath("./managerUserData"));
         String encodedUserDataScript = Base64.getEncoder().encodeToString(userDataScriptAsBytes);
 
         String instanceId = Ec2Operations.createEC2Instance(ec2, "Worker", "ami-02b92c281a4d3dc79", encodedUserDataScript);
@@ -51,9 +52,10 @@ public class TestWorker {
 
 
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
         testLocally();
-        Worker.main(new String[0]);
+        testOnCloud();
+//        Worker.main(new String[0]);
     }
 
 

@@ -42,7 +42,7 @@ public class Ec2Operations {
         try {
             ec2.createTags(tagRequest);
             System.out.printf(
-                    "Successfully started EC2 Instance %s based on AMI %s",
+                    "Successfully created EC2 Instance %s based on AMI %s\n",
                     instanceId, amiId);
 
             return instanceId;
