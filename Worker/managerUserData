@@ -2,32 +2,18 @@
 
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
-sudo echo "installing java" >> /var/tmp/mylog.txt
-
 sudo yum install java -y
-
-sudo echo "installing maven" >> /var/tmp/mylog.txt
 
 sudo yum install maven -y
 
-sudo echo "cd into home" >> /var/tmp/mylog.txt
-
 cd /home/ec2-user
-
-sudo echo "copying tar from s3" >> /var/tmp/mylog.txt
 
 aws s3 cp s3://dspbucket12345/Worker.tar /home/ec2-user/Worker.tar
 
-sudo echo "extracting tar" >> /var/tmp/mylog.txt
-
 tar -xf Worker.tar
 
-sudo echo "building maven package" >> /var/tmp/mylog.txt
+sleep 10
 
-mvn package
-
-sudo echo "executing maven project" >> /var/tmp/mylog.txt
+sudo mvn package
 
 sudo mvn exec:java -Dexec.mainClass="com.example.myapp.Worker"
-
-sudo echo "finished user data script" >> /var/tmp/mylog.txt
