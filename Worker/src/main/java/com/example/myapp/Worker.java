@@ -62,15 +62,14 @@ public class Worker {
 
         String[] parserArgs = {
                 "-model", "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz",
-                "-maxLength", "80",
+                "-sentences", "newline",
+//                "-maxLength", "80",
                 "-outputFormat", outputFormat,
-//                "-output", "some.txt",
                 "-writeOutputFiles",
-                "-outputFilesPrefix", "aaa",
+                "-outputFilesExtension", outputFileExtension,
 //                "-outputFilesDirectory", outputFileDirectory,
 //                "-outputFilesPrefix", "output4",  // currently on Test option - not production
 //                "-retainTMPSubcategories",
-                "-outputFilesExtension", outputFileExtension,
                 filePath};
         LexicalizedParser.main(parserArgs);
         System.out.println("\nfinished analyzing\n");
@@ -82,7 +81,7 @@ public class Worker {
         return file.delete();
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         boolean shouldTerminate = false;
         Region region = Region.US_WEST_2;
 
@@ -93,14 +92,6 @@ public class Worker {
         S3Client s3 = S3Client.builder()
                 .region(region)
                 .build();
-
-        CreateQueueResponse createQueueResponse = sqs.createQueue(CreateQueueRequest.builder().queueName("input-1").build());
-        sqs.createQueue(CreateQueueRequest.builder().queueName("output-1").build());
-        Map<String, MessageAttributeValue> tempMap = new HashMap<>();
-        tempMap.put("output-bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").dataType("String").build());
-        tempMap.put("analysis-type", MessageAttributeValue.builder().dataType("String").stringValue("CONSTITUENCY").build());
-        tempMap.put("url", MessageAttributeValue.builder().dataType("String").stringValue("https://www.w3.org/TR/PNG/iso_8859-1.txt").build());
-        sqs.sendMessage(SendMessageRequest.builder().queueUrl(createQueueResponse.queueUrl()).messageBody("some non-empty message").messageAttributes(tempMap).build());
 
 
         ListQueuesResponse listQueuesResponse = sqs
@@ -134,6 +125,7 @@ public class Worker {
                 System.out.println("body: " + message.body());
                 if (message.body().equals("terminate")) {
                     shouldTerminate = true;
+                    MessageOperations.deleteMessage(sqs,queueUrl, message);
                     break;
                 }
 
@@ -181,11 +173,10 @@ public class Worker {
                     MessageOperations.sendMessage(sqs, outputQueueUrl, "Success", messageAttributeValueMap);
                     System.out.println("finished successfully");
                 } catch (Exception e) {
-                    sqs.deleteMessage(DeleteMessageRequest.builder().queueUrl(queueUrl).receiptHandle(message.receiptHandle()).build());
                     System.out.println(e.getMessage());
+                    MessageOperations.deleteMessage(sqs, queueUrl, message);
                     MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
                 }
-                shouldTerminate = true;
             }
         }
         System.out.println("\nclosing resources\n");
