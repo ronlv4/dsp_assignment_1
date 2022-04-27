@@ -1,0 +1,4 @@
+#!/bin/bash
+sudo yum install java -y
+aws s3 cp s3://shir11226543666123/Worker.jar .
+java -jar Worker.jar

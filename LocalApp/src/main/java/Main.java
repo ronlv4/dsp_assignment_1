@@ -30,7 +30,7 @@ public class Main {
         } catch (IOException ignored) {
         }
 
-        // ec2Connector.createEC2InstancesIfNotExists("Manager", "ami-0f9fc25dd2506cf6d", userData, 1);
+//         ec2Connector.createEC2InstancesIfNotExists("Manager", "ami-0f9fc25dd2506cf6d", userData, 1);
 
         String queueName = UUID.randomUUID().toString();
         sqsConnector.createQueue(queueName);
@@ -50,5 +50,6 @@ public class Main {
         String b = m.messageAttributes().get("bucket").stringValue();
         String k = m.messageAttributes().get("key").stringValue();
         System.out.println(s3Connector.readStringFromS3(b, k));
+        sqsConnector.deleteMessage(queueName, m);
     }
 }
