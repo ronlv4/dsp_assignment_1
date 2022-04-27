@@ -15,8 +15,8 @@ public class EC2Connector {
     }
 
     public synchronized void createEC2InstancesIfNotExists(String tagName, String amiId, String userData, int n) {
-        List<Instance> instances = getInstancesWithTag(tagName);
-        int instancesToCreate = Math.max(0, n - instances.size());
+       int instances = getInstancesWithTag(tagName);
+        int instancesToCreate = Math.max(0, n - instances);
         for(int i = 0;i < instancesToCreate;i++){
             createEC2Instance(tagName, amiId, userData);
         }
@@ -40,12 +40,12 @@ public class EC2Connector {
         ec2.runInstances(runRequest);
     }
 
-    public List<Instance> getInstancesWithTag(String tagName){
+    public int getInstancesWithTag(String tagName){
         DescribeInstancesRequest describeInstancesRequest = DescribeInstancesRequest.builder()
                 .filters(Filter.builder().name("tag:Name").values(tagName).build())
                 .build();
         DescribeInstancesResponse response = ec2.describeInstances(describeInstancesRequest);
-        return response.reservations().size() > 0 ? response.reservations().get(0).instances() : List.of();
+        return response.reservations().size();
     }
 }
 

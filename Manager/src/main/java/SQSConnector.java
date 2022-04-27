@@ -47,7 +47,6 @@ public class SQSConnector {
                 .build());
         if(response.hasMessages()){
             ans = response.messages();
-            deleteMessages(name, ans);
         }
         return ans;
     }
@@ -66,5 +65,10 @@ public class SQSConnector {
                         receiptHandle(m.receiptHandle()).
                         build()).collect(Collectors.toList()))
                 .build());
+    }
+
+    public void deleteMessage(String name, Message message){
+        String url = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(name).build()).queueUrl();
+        sqs.deleteMessage(DeleteMessageRequest.builder().queueUrl(url).receiptHandle(message.receiptHandle()).build());
     }
 }
