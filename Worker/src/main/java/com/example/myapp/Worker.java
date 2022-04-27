@@ -91,7 +91,7 @@ public class Worker {
         while (!shouldTerminate) {
             ReceiveMessageResponse receiveMessageResponse = sqs.receiveMessage(ReceiveMessageRequest
                     .builder()
-                    .waitTimeSeconds(30)
+                    .waitTimeSeconds(20)
                     .queueUrl(inputQueueUrl)
                     .messageAttributeNames("fileUrl", "analysis", "bucket", "responseQueue")
                     .build());
