@@ -3,6 +3,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SQSConnector {
@@ -23,9 +24,16 @@ public class SQSConnector {
         sqs.deleteQueue(DeleteQueueRequest.builder().queueUrl(url).build());
     }
 
-    public void sendMessage(String name, String body){
-        String url = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(name).build()).queueUrl();
-        sqs.sendMessage(SendMessageRequest.builder().queueUrl(url).messageBody(body).build());
+    public void sendMessage(String name, String body, Map<String, MessageAttributeValue> attributeNames){
+        String url;
+        try {
+            url = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(name).build()).queueUrl();
+        }
+        catch (QueueDoesNotExistException e){
+            createQueue(name);
+            url = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(name).build()).queueUrl();
+        }
+        sqs.sendMessage(SendMessageRequest.builder().queueUrl(url).messageBody(body).messageAttributes(attributeNames).build());
     }
 
     public List<Message> getMessages(String name, int numOfMessages){
@@ -35,6 +43,7 @@ public class SQSConnector {
                 .queueUrl(url)
                 .maxNumberOfMessages(numOfMessages)
                 .waitTimeSeconds(20)
+                .messageAttributeNames("All")
                 .build());
         if(response.hasMessages()){
             ans = response.messages();

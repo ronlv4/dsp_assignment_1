@@ -1,49 +1,51 @@
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
+import java.util.Objects;
 
 public class EC2Connector {
 
     private final Ec2Client ec2;
 
-    public EC2Connector(){
-        this.ec2 = Ec2Client.builder().build();
+
+    public EC2Connector(Region region){
+        this.ec2 = Ec2Client.builder().region(region).build();
     }
 
-    public String createEC2Instance(String name, String amiId) {
+    public void createEC2InstancesIfNotExists(String tagName, String amiId, String userData, int n) {
+        List<Instance> instances = getInstancesWithTag(tagName);
+        int instancesToCreate = Math.max(0, n - instances.size());
+        for(int i = 0;i < instancesToCreate;i++){
+            createEC2Instance(tagName, amiId, userData);
+        }
+    }
 
+    public void createEC2Instance(String tagName, String amiId, String userData) {
         RunInstancesRequest runRequest = RunInstancesRequest.builder()
                 .imageId(amiId)
-                .instanceType(InstanceType.T1_MICRO)
+                .instanceType(InstanceType.T2_MICRO)
                 .maxCount(1)
                 .minCount(1)
+                .keyName("dist1")
+                .iamInstanceProfile(IamInstanceProfileSpecification.builder().arn("arn:aws:iam::350086659594:instance-profile/LabInstanceProfile").build())
+                .userData(new String(Base64.getEncoder().encode(userData.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8))
+                .tagSpecifications(TagSpecification.builder()
+                        .resourceType(ResourceType.INSTANCE)
+                        .tags(Tag.builder().key("Name").value(tagName).build())
+                        .build())
+
                 .build();
+        ec2.runInstances(runRequest);
+    }
 
-        RunInstancesResponse response = ec2.runInstances(runRequest);
-        String instanceId = response.instances().get(0).instanceId();
-
-        Tag tag = Tag.builder()
-                .key("Name")
-                .value(name)
+    public List<Instance> getInstancesWithTag(String tagName){
+        DescribeInstancesRequest describeInstancesRequest = DescribeInstancesRequest.builder()
+                .filters(Filter.builder().name("tag:Name").values(tagName).build())
                 .build();
-
-        CreateTagsRequest tagRequest = CreateTagsRequest.builder()
-                .resources(instanceId)
-                .tags(tag)
-                .build();
-
-        try {
-            ec2.createTags(tagRequest);
-            System.out.printf(
-                    "Successfully started EC2 Instance %s based on AMI %s",
-                    instanceId, amiId);
-
-            return instanceId;
-
-        } catch (Ec2Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
-        }
-
-        return "";
+        DescribeInstancesResponse response = ec2.describeInstances(describeInstancesRequest);
+        return response.reservations().size() > 0 ? response.reservations().get(0).instances() : List.of();
     }
 }

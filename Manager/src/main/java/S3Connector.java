@@ -17,10 +17,16 @@ public class S3Connector {
         this.s3 = S3Client.builder().region(region).build();
     }
 
-    public void writeFileToS3(String bucket, String key, String fileName){
+    public void writeFileToS3(String bucket, String key, File file){
         if(!bucketExists(s3, bucket))
             s3.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
-        s3.putObject(PutObjectRequest.builder().bucket(bucket).key(key).build(), RequestBody.fromFile(new File(fileName)));
+        s3.putObject(PutObjectRequest.builder().bucket(bucket).key(key).build(), RequestBody.fromFile(file));
+    }
+
+    public void writeStringToS3(String bucket, String key, String s){
+        if(!bucketExists(s3, bucket))
+            s3.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
+        s3.putObject(PutObjectRequest.builder().bucket(bucket).key(key).build(), RequestBody.fromString(s));
     }
 
     public void readFileFromS3(String bucket, String key, String fileName) {
