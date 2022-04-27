@@ -88,19 +88,6 @@ public class Worker {
                 .queueName("WorkerQueue")
                 .build()).queueUrl();
 
-        ListQueuesResponse listQueuesResponse = sqs
-                .listQueues(ListQueuesRequest
-                        .builder()
-                        .queueNamePrefix("input")
-                        .build());
-
-        System.out.println("requested list queue:\n");
-        System.out.println("found:\n");
-        for (String queueUrl : listQueuesResponse.queueUrls()) {
-            System.out.println(queueUrl + "\n");
-        }
-
-
         while (!shouldTerminate) {
             ReceiveMessageResponse receiveMessageResponse = sqs.receiveMessage(ReceiveMessageRequest
                     .builder()

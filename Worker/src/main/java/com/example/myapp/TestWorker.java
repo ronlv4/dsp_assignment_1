@@ -40,12 +40,13 @@ public class TestWorker {
 
         SqsClient sqs = SqsClient.builder().region(region).build();
 
-        String inputQueueUrl = QueueOperations.createQueue(sqs, "input-1");
-        String outputQueueUrl = QueueOperations.createQueue(sqs, "output-1");
+        String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
+        String outputQueueUrl = QueueOperations.createQueue(sqs, "responseQueue");
         Map<String, MessageAttributeValue> tempMap = new HashMap<>();
-        tempMap.put("output-bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").dataType("String").build());
-        tempMap.put("analysis-type", MessageAttributeValue.builder().dataType("String").stringValue("CONSTITUENCY").build());
-        tempMap.put("url", MessageAttributeValue.builder().dataType("String").stringValue("https://www.gutenberg.org/files/1659/1659-0.txt").build());
+        tempMap.put("bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").dataType("String").build());
+        tempMap.put("analysis", MessageAttributeValue.builder().dataType("String").stringValue("DEPENDENCY").build());
+        tempMap.put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
+        tempMap.put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue("https://www.gutenberg.org/files/1659/1659-0.txt").build());
         MessageOperations.sendMessage(sqs, inputQueueUrl, "some non-empty message", tempMap);
         MessageOperations.sendMessage(sqs,inputQueueUrl, "terminate");
     }
