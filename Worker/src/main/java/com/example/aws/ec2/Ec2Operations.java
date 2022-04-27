@@ -6,31 +6,24 @@ import software.amazon.awssdk.services.ec2.model.*;
 
 public class Ec2Operations {
 
-    public static void runInstanceByMoshe(Ec2Client ec2, String name, String amiId) {
+    public static String createEC2Instance(Ec2Client ec2, String name, String amiId) {
+        return createEC2Instance(ec2, name, amiId, "");
+    }
+
+    public static String createEC2Instance(Ec2Client ec2, String name, String amiId, String encodedUserData) {
+
         IamInstanceProfileSpecification iamInstanceProfile = IamInstanceProfileSpecification.builder()
                 .name("LabInstanceProfile")
                 .build();
 
         RunInstancesRequest runRequest = RunInstancesRequest.builder()
-                .imageId("ami-0ed9277fb7eb570c9")
+                .imageId(amiId)
                 .instanceType(InstanceType.T2_MICRO)
                 .maxCount(1)
                 .minCount(1)
-                .keyName("Management")
-//               .userData(encodedUserData)
-//               .securityGroups(securityGroups)
+                .keyName("test-linux-vm")
+                .userData(encodedUserData)
                 .iamInstanceProfile(iamInstanceProfile)
-//               .tagSpecifications(myTags)
-                .build();
-    }
-
-    public static String createEC2Instance(Ec2Client ec2, String name, String amiId) {
-
-        RunInstancesRequest runRequest = RunInstancesRequest.builder()
-                .imageId(amiId)
-                .instanceType(InstanceType.T1_MICRO)
-                .maxCount(1)
-                .minCount(1)
                 .build();
 
         RunInstancesResponse response = ec2.runInstances(runRequest);
@@ -49,7 +42,7 @@ public class Ec2Operations {
         try {
             ec2.createTags(tagRequest);
             System.out.printf(
-                    "Successfully started EC2 Instance %s based on AMI %s",
+                    "Successfully created EC2 Instance %s based on AMI %s\n",
                     instanceId, amiId);
 
             return instanceId;
@@ -144,7 +137,7 @@ public class Ec2Operations {
 
         } catch (Ec2Exception e) {
             System.err.println(e.awsErrorDetails().errorMessage());
-            return null;
+            return "";
         }
     }
 }
