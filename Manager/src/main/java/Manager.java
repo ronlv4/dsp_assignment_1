@@ -38,8 +38,7 @@ public class Manager {
             if(Objects.nonNull(m)) {
                 if(m.messageAttributes().get("terminate").stringValue().equals("1"))
                     running = false;
-//                executor.submit(() -> handleRequest(m));
-                handleRequest(m);
+                executor.submit(() -> handleRequest(m));
             }
         }
         terminate();
