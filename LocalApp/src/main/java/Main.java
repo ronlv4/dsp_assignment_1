@@ -4,7 +4,9 @@ import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 import software.amazon.awssdk.utils.IoUtils;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
@@ -12,9 +14,12 @@ import java.util.UUID;
 
 public class Main {
 
+    private static final String MANAGER_TAG = "Manager";
+    private static final String AMI_ID = "ami-0f9fc25dd2506cf6d";
+    private static final String BUCKET = "shir11226543666123";
+
     public static void main(String[] args){
-        String bucket = "shir11226543666123";
-        String key = "shir";
+        String key = "Input-File-" + UUID.randomUUID().toString();
         S3Connector s3Connector = new S3Connector(Region.US_EAST_1);
         SQSConnector sqsConnector = new SQSConnector(Region.US_EAST_1);
         EC2Connector ec2Connector = new EC2Connector(Region.US_EAST_1);
@@ -30,17 +35,17 @@ public class Main {
         } catch (IOException ignored) {
         }
 
-         ec2Connector.createEC2InstancesIfNotExists("Manager2", "ami-0f9fc25dd2506cf6d", userData, 1);
+         ec2Connector.createEC2InstancesIfNotExists(MANAGER_TAG, AMI_ID, userData, 1);
 
-        String queueName = UUID.randomUUID().toString();
+        String queueName = "Manager-Answer-" + UUID.randomUUID().toString();
         sqsConnector.createQueue(queueName);
         Map<String, MessageAttributeValue> atts = Map.of("responseQueue", MessageAttributeValue.builder().stringValue(queueName).dataType("String").build(),
-                                                         "bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
+                                                         "bucket", MessageAttributeValue.builder().stringValue(BUCKET).dataType("String").build(),
                                                          "key", MessageAttributeValue.builder().stringValue(key).dataType("String").build(),
                                                          "n", MessageAttributeValue.builder().stringValue(n).dataType("String").build(),
                                                          "terminate", MessageAttributeValue.builder().stringValue(terminate).dataType("String").build());
 
-        s3Connector.writeFileToS3(bucket, key, new File(inputFileName));
+        s3Connector.writeFileToS3(BUCKET, key, new File(inputFileName));
         sqsConnector.sendMessage("ManagerQueue", "file is in the queue", atts);
 
         Message m = null;
@@ -49,7 +54,25 @@ public class Main {
         }
         String b = m.messageAttributes().get("bucket").stringValue();
         String k = m.messageAttributes().get("key").stringValue();
-        System.out.println(s3Connector.readStringFromS3(b, k));
+        String output = s3Connector.readStringFromS3(b, k);
         sqsConnector.deleteMessage(queueName, m);
+        sqsConnector.deleteQueue(queueName);
+        s3Connector.deleteS3Object(BUCKET, key);
+        s3Connector.deleteS3Object(b, k);
+        try {
+            createHtmlOutputFile(output, outputFileName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
+
+    private static void createHtmlOutputFile(String s, String filename) throws IOException {
+        File f = new File(filename);
+        BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+        bw.write("<html><body>");
+        bw.write(s);
+        bw.write("</body></html>");
+        bw.close();
+    }
+
 }
