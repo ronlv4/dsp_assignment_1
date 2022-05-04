@@ -74,17 +74,8 @@ public class Worker {
         return file.delete();
     }
 
-    public static void main(String[] args) {
+    public static void execute(String[] args, SqsClient sqs, S3Client s3){
         boolean shouldTerminate = false;
-        Region region = Region.US_WEST_2;
-
-        SqsClient sqs = SqsClient.builder()
-                .region(region)
-                .build();
-
-        S3Client s3 = S3Client.builder()
-                .region(region)
-                .build();
 
         String inputQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest
                 .builder()
@@ -141,8 +132,42 @@ public class Worker {
                 MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
             }
         }
-        s3.close();
-        sqs.close();
-        Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
+    }
+
+    public static void main(String[] args) {
+        Region region = Region.US_WEST_2;
+
+        SqsClient sqs = SqsClient
+                .builder()
+                .region(region)
+                .build();
+
+        S3Client s3 = S3Client
+                .builder()
+                .region(region)
+                .build();
+
+        String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
+                .queueName("failedWorker").build()).queueUrl();
+
+        try {
+            execute(args, sqs, s3);
+        } catch (Exception e){
+
+            sqs.sendMessage(SendMessageRequest
+                    .builder()
+                    .queueUrl(failedWorkerQueueUrl)
+                    .messageBody("Error: Unhandled exception occurred")
+                    .build());
+        }
+        finally {
+            s3.close();
+            sqs.close();
+            Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
+        }
+
+
+
+
     }
 }
