@@ -1,16 +1,15 @@
 package com.example.myapp;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import com.example.aws.sqs.MessageOperations;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
@@ -102,17 +101,23 @@ public class Worker {
 
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
             String outputQueueUrl = message.messageAttributes().get("responseQueue").stringValue();
-            String fileUrl = message.messageAttributes().get("fileUrl").stringValue();
-            String analysisType = message.messageAttributes().get("analysis").stringValue();
 
-            try {
-                File outputFile = processMessage(message, analysisType, fileUrl);
+            ExecutorService parsingExecution = Executors.newSingleThreadExecutor();
+            Future<File> outputFile;
+
+            try{
+                outputFile = parsingExecution.submit(new WorkerExecution(message, s3, sqs));
+                while (!outputFile.isDone()) {
+                    outputFile.get(10, TimeUnit.MINUTES);
+                    MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toMillis(15)));
+                }
+                parsingExecution.shutdown();
 
                 s3.putObject(PutObjectRequest.builder()
                                 .bucket(outputBucket)
                                 .key(message.messageId())
                                 .build(),
-                        RequestBody.fromFile(outputFile));
+                        RequestBody.fromFile(outputFile.get()));
 
                 String outputUrl = s3.utilities().getUrl(GetUrlRequest
                         .builder()
@@ -128,7 +133,7 @@ public class Worker {
                 MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
 
             } catch (Exception e) {
-                MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
+                MessageOperations.changeMessage(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toMillis(1)));
                 MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
             }
         }

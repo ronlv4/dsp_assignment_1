@@ -117,5 +117,30 @@ public class MessageOperations {
         // snippet-end:[sqs.java2.sqs_example.delete_message]
     }
 
+    public static ChangeMessageVisibilityResponse changeMessageVisibility(SqsClient sqs, String queueUrl, Message message, Integer visibilityTimeOut){
+        return sqs.changeMessageVisibility(ChangeMessageVisibilityRequest
+                .builder()
+                .queueUrl(queueUrl)
+                .receiptHandle(message.receiptHandle())
+                .visibilityTimeout(visibilityTimeOut)
+                .build());
+    }
+
+    public static void changeMessage(SqsClient sqsClient, String queueUrl, Message message, Integer visibilityTimeout) {
+
+        System.out.println("\nChange Message Visibility");
+
+        try {
+                ChangeMessageVisibilityRequest req = ChangeMessageVisibilityRequest.builder()
+                        .queueUrl(queueUrl)
+                        .receiptHandle(message.receiptHandle())
+                        .visibilityTimeout(visibilityTimeout)
+                        .build();
+                sqsClient.changeMessageVisibility(req);
+        } catch (SqsException e) {
+            System.err.println(e.awsErrorDetails().errorMessage());
+        }
+    }
+
 
 }
