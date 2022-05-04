@@ -1,9 +1,11 @@
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.regions.internal.util.EC2MetadataUtils;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class EC2Connector {
 
@@ -15,7 +17,7 @@ public class EC2Connector {
     }
 
     public synchronized void createEC2InstancesIfNotExists(String tagName, String amiId, String userData, int n) {
-       int instances = getInstancesWithTag(tagName);
+       int instances = getInstancesWithTag(tagName).size();
         int instancesToCreate = Math.max(0, n - instances);
         for(int i = 0;i < instancesToCreate;i++){
             createEC2Instance(tagName, amiId, userData);
@@ -40,12 +42,19 @@ public class EC2Connector {
         ec2.runInstances(runRequest);
     }
 
-    public int getInstancesWithTag(String tagName){
+    public List<Instance> getInstancesWithTag(String tagName){
         DescribeInstancesRequest describeInstancesRequest = DescribeInstancesRequest.builder()
                 .filters(Filter.builder().name("tag:Name").values(tagName).build())
                 .build();
         DescribeInstancesResponse response = ec2.describeInstances(describeInstancesRequest);
-        return response.reservations().size();
+        return response.reservations().stream()
+                .map(r -> r.instances().get(0))
+                .filter(instance -> instance.state().code()==0 || instance.state().code()==16).collect(Collectors.toList());
+    }
+
+    public int terminateInstances(List<String> instanceId){
+        TerminateInstancesResponse r = ec2.terminateInstances(TerminateInstancesRequest.builder().instanceIds(instanceId).build());
+        return r.terminatingInstances().size();
     }
 }
 

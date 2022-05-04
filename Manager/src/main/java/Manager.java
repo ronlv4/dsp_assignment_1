@@ -1,23 +1,24 @@
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.regions.internal.util.EC2MetadataUtils;
+import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.utils.IoUtils;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class Manager {
-    private static final String WORKER_TAG = "Worker1";
+    private static final String WORKER_TAG = "Worker";
+    private static final String AMI_ID = "ami-0f9fc25dd2506cf6d";
     static S3Connector s3Connector = new S3Connector(Region.US_EAST_1);
     static SQSConnector sqsConnector = new SQSConnector(Region.US_EAST_1);
     static EC2Connector ec2Connector = new EC2Connector(Region.US_EAST_1);
-    static ExecutorService executor = Executors.newFixedThreadPool(4);
+    static ExecutorService executor = Executors.newFixedThreadPool(8);
 
     static String userData;
 
@@ -53,9 +54,10 @@ public class Manager {
         String inp = s3Connector.readStringFromS3(bucket, key);
         String[] lines = inp.split("\\r?\\n");
         int neededWorkers = Math.min((int)Math.ceil(lines.length/n), 16);
-         ec2Connector.createEC2InstancesIfNotExists(WORKER_TAG, "ami-0f9fc25dd2506cf6d", userData, neededWorkers);
+        ec2Connector.createEC2InstancesIfNotExists(WORKER_TAG, AMI_ID, userData, neededWorkers);
 
-        String queueName = UUID.randomUUID().toString();
+
+        String queueName = "Worker-Answer-" + UUID.randomUUID().toString();
         sqsConnector.createQueue(queueName);
         Arrays.stream(lines).parallel().forEach(line -> {
             System.out.println(line);
@@ -82,25 +84,28 @@ public class Manager {
             }
         }
 
-        String responseKey = UUID.randomUUID().toString();
+        String responseKey = "Output-File-" + UUID.randomUUID().toString();
         s3Connector.writeStringToS3(bucket, responseKey, ans.toString());
         sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
 
         sqsConnector.deleteMessage("ManagerQueue", m);
+        sqsConnector.deleteQueue(queueName);
     }
 
     private static void terminate(){
         try {
             executor.shutdown();
-            boolean terminated = executor.awaitTermination(60, TimeUnit.MINUTES);
+            executor.awaitTermination(60, TimeUnit.MINUTES);
         } catch (InterruptedException interruptedException) {
             interruptedException.printStackTrace();
         }
         finally {
-            int numOfWorkersToTerminate = ec2Connector.getInstancesWithTag(WORKER_TAG);
-            for(int i = 0;i < numOfWorkersToTerminate;i++)
-                sqsConnector.sendMessage("WorkerQueue", "terminate", Map.of());
+            List<Instance> workersToTerminate = ec2Connector.getInstancesWithTag(WORKER_TAG);
+            int terminated = ec2Connector.terminateInstances(workersToTerminate.stream().map(Instance::instanceId).collect(Collectors.toList()));
+            if(terminated < workersToTerminate.size())
+                System.out.println("Not all workers were terminated!");
+            ec2Connector.terminateInstances(List.of(EC2MetadataUtils.getInstanceId()));
         }
     }
 }
