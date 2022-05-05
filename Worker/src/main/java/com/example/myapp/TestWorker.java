@@ -18,7 +18,7 @@ import java.util.Map;
 public class TestWorker {
     public static void testOnCloud() throws IOException {
 
-        Region region = Region.US_WEST_2;
+        Region region = Region.US_EAST_1;
 
         Ec2Client ec2 = Ec2Client.builder().region(region).build();
 
@@ -31,7 +31,7 @@ public class TestWorker {
     }
 
     public static void createTestScene(){
-        Region region = Region.US_WEST_2;
+        Region region = Region.US_EAST_1;
 
 
         SqsClient sqs = SqsClient.builder().region(region).build();

@@ -140,7 +140,7 @@ public class Worker {
     }
 
     public static void main(String[] args) {
-        Region region = Region.US_WEST_2;
+        Region region = Region.US_EAST_1;
 
         SqsClient sqs = SqsClient
                 .builder()
