@@ -1,14 +1,11 @@
 package com.example.myapp;
 
-import com.example.aws.sqs.MessageOperations;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
-import software.amazon.awssdk.core.sync.RequestBody;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetUrlRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,7 +14,6 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class WorkerExecution implements Callable<File> {
@@ -29,6 +25,8 @@ public class WorkerExecution implements Callable<File> {
     String analysisType;
     S3Client s3;
     SqsClient sqs;
+
+    static final Logger log = LogManager.getLogger();
 
     public WorkerExecution(Message queueMessage, S3Client s3Client, SqsClient sqsClient) {
         message = queueMessage;
@@ -45,15 +43,15 @@ public class WorkerExecution implements Callable<File> {
     }
 
     public static String donwloadFile(URL url, String outputFilePath) throws IOException {
+        log.info("downloading from {}", url.toString());
         ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
         FileOutputStream fileOutputStream = new FileOutputStream(outputFilePath);
         FileChannel fileChannel = fileOutputStream.getChannel();
         fileOutputStream.getChannel()
                 .transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+        log.info("file is ready at {}", outputFilePath);
         return outputFilePath;
-
     }
-
 
     private static File processMessage(Message message, String analysisType, String fileUrl) throws IOException {
         String filePath = donwloadFile(new URL(fileUrl));
@@ -79,16 +77,20 @@ public class WorkerExecution implements Callable<File> {
                 "-outputFilesExtension", outputFileExtension,
                 filePath};
 
+        log.info("starting to parse file at {}",filePath);
+        log.info("analysis type used: {}", analysisType);
         LexicalizedParser.main(parserArgs);
+        String outputFilePath = outputFileDirectory + "/" + filePath + "." + outputFileExtension;
+        log.info("file parsing is ready at {}", outputFilePath);
 
         deleteFile(new File(filePath));
-        return new File(outputFileDirectory + "/" + filePath + "." + outputFileExtension);
+        return new File(outputFilePath);
     }
 
     private static boolean deleteFile(File file) {
+        log.debug("deleting file at {}", file.getAbsolutePath());
         return file.delete();
     }
-
     @Override
     public File call() throws IOException {
         return processMessage(message, analysisType, fileUrl);

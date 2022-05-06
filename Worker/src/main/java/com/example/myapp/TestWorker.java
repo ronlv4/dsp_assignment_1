@@ -45,7 +45,7 @@ public class TestWorker {
         tempMap.put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
         tempMap.put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue("https://www.gutenberg.org/files/1659/1659-0.txt").build());
         MessageOperations.sendMessage(sqs, inputQueueUrl, "some non-empty message", tempMap);
-        MessageOperations.sendMessage(sqs,inputQueueUrl, "terminate");
+//        MessageOperations.sendMessage(sqs,inputQueueUrl, "terminate");
     }
 
     public static void testLocally(){

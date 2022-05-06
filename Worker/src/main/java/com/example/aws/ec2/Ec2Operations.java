@@ -1,10 +1,13 @@
 package com.example.aws.ec2;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 
 public class Ec2Operations {
+    static final Logger log = LogManager.getLogger();
 
     public static String createEC2Instance(Ec2Client ec2, String name, String amiId) {
         return createEC2Instance(ec2, name, amiId, "");
@@ -41,15 +44,14 @@ public class Ec2Operations {
 
         try {
             ec2.createTags(tagRequest);
-            System.out.printf(
-                    "Successfully created EC2 Instance %s based on AMI %s\n",
+            log.info(
+                    "Successfully created EC2 Instance {} based on AMI {}\n",
                     instanceId, amiId);
 
             return instanceId;
 
         } catch (Ec2Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
+            log.error(e.awsErrorDetails().errorMessage());
         }
 
         return "";
@@ -62,7 +64,7 @@ public class Ec2Operations {
                 .build();
 
         ec2.startInstances(request);
-        System.out.printf("Successfully started instance %s", instanceId);
+        log.info("Successfully started instance {}", instanceId);
     }
 
     public static void stopInstance(Ec2Client ec2, String instanceId) {
@@ -72,7 +74,7 @@ public class Ec2Operations {
                 .build();
 
         ec2.stopInstances(request);
-        System.out.printf("Successfully stopped instance %s", instanceId);
+        log.info("Successfully stopped instance {}", instanceId);
     }
 
     public static void rebootEC2Instance(Ec2Client ec2, String instanceId) {
@@ -83,11 +85,10 @@ public class Ec2Operations {
                     .build();
 
             ec2.rebootInstances(request);
-            System.out.printf(
-                    "Successfully rebooted instance %s", instanceId);
+            log.info(
+                    "Successfully rebooted instance {}", instanceId);
         } catch (Ec2Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
+            log.error(e.awsErrorDetails().errorMessage());
         }
     }
 
@@ -116,8 +117,7 @@ public class Ec2Operations {
             } while (nextToken != null);
 
         } catch (Ec2Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
+            log.error(e.awsErrorDetails().errorMessage());
         }
     }
 
@@ -136,7 +136,7 @@ public class Ec2Operations {
             return response.reservations().get(0).instances().get(0).instanceId();
 
         } catch (Ec2Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
+            log.error(e.awsErrorDetails().errorMessage());
             return "";
         }
     }

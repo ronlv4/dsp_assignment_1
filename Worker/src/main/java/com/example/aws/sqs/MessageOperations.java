@@ -1,5 +1,7 @@
 package com.example.aws.sqs;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
@@ -7,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MessageOperations {
+    static final Logger log = LogManager.getLogger();
     public static void sendMessage(SqsClient sqsClient, SendMessageRequest messageRequest) {
         sqsClient.sendMessage(messageRequest);
     }
@@ -35,7 +38,7 @@ public class MessageOperations {
 
     public static void sendBatchMessages(SqsClient sqsClient, String queueUrl) {
 
-        System.out.println("\nSend multiple messages");
+        log.info("\nSend multiple messages to url: {}", queueUrl);
 
         try {
             // snippet-start:[sqs.java2.sqs_example.send__multiple_messages]
@@ -48,14 +51,13 @@ public class MessageOperations {
             // snippet-end:[sqs.java2.sqs_example.send__multiple_messages]
 
         } catch (SqsException e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
+            log.error(e.awsErrorDetails().errorMessage());
         }
     }
 
     public static List<Message> receiveMessages(SqsClient sqsClient, String queueUrl) {
 
-        System.out.println("\nReceive messages");
+        log.info("\nReceive messages from queue: {}", queueUrl);
 
         try {
             // snippet-start:[sqs.java2.sqs_example.retrieve_messages]
@@ -66,34 +68,27 @@ public class MessageOperations {
             List<Message> messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
             return messages;
         } catch (SqsException e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
+            log.error(e.awsErrorDetails().errorMessage());
         }
         return null;
         // snippet-end:[sqs.java2.sqs_example.retrieve_messages]
     }
 
-    public static void changeMessages(SqsClient sqsClient, String queueUrl, List<Message> messages) {
+    public static void changeMessages(SqsClient sqs, String queueUrl, List<Message> messages, Integer visibilityTimeout) {
 
-        System.out.println("\nChange Message Visibility");
+        log.info("\nChange Message Visibility to {}", visibilityTimeout);
 
         try {
-
-            for (Message message : messages) {
-                ChangeMessageVisibilityRequest req = ChangeMessageVisibilityRequest.builder()
-                        .queueUrl(queueUrl)
-                        .receiptHandle(message.receiptHandle())
-                        .visibilityTimeout(100)
-                        .build();
-                sqsClient.changeMessageVisibility(req);
-            }
+            for (Message message : messages)
+                changeMessageVisibility(sqs, queueUrl, message, visibilityTimeout);
         } catch (SqsException e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
+            log.error(e.awsErrorDetails().errorMessage());
         }
     }
 
     public static void deleteMessage(SqsClient sqsClient, String queueUrl, Message message) {
+        log.info("\nDelete Message {}", message.messageId());
+
         try {
             DeleteMessageRequest deleteMessageRequest = DeleteMessageRequest.builder()
                     .queueUrl(queueUrl)
@@ -101,14 +96,13 @@ public class MessageOperations {
                     .build();
             sqsClient.deleteMessage(deleteMessageRequest);
         } catch (SqsException e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
-            System.exit(1);
+            log.error(e.awsErrorDetails().errorMessage());
         }
     }
 
 
     public static void deleteMessages(SqsClient sqsClient, String queueUrl, List<Message> messages) {
-        System.out.println("\nDelete Messages");
+        log.info("\nDelete Messages in queue {}", queueUrl);
         // snippet-start:[sqs.java2.sqs_example.delete_message]
 
         for (Message message : messages) {
@@ -117,29 +111,19 @@ public class MessageOperations {
         // snippet-end:[sqs.java2.sqs_example.delete_message]
     }
 
-    public static ChangeMessageVisibilityResponse changeMessageVisibility(SqsClient sqs, String queueUrl, Message message, Integer visibilityTimeOut){
-        return sqs.changeMessageVisibility(ChangeMessageVisibilityRequest
-                .builder()
-                .queueUrl(queueUrl)
-                .receiptHandle(message.receiptHandle())
-                .visibilityTimeout(visibilityTimeOut)
-                .build());
-    }
-
-    public static void changeMessage(SqsClient sqsClient, String queueUrl, Message message, Integer visibilityTimeout) {
-
-        System.out.println("\nChange Message Visibility");
-
+    public static ChangeMessageVisibilityResponse changeMessageVisibility(SqsClient sqs, String queueUrl, Message message, Integer visibilityTimeout) {
+        log.info("\nChange message Visibility to {} seconds", visibilityTimeout);
         try {
-                ChangeMessageVisibilityRequest req = ChangeMessageVisibilityRequest.builder()
-                        .queueUrl(queueUrl)
-                        .receiptHandle(message.receiptHandle())
-                        .visibilityTimeout(visibilityTimeout)
-                        .build();
-                sqsClient.changeMessageVisibility(req);
+            return sqs.changeMessageVisibility(ChangeMessageVisibilityRequest
+                    .builder()
+                    .queueUrl(queueUrl)
+                    .receiptHandle(message.receiptHandle())
+                    .visibilityTimeout(visibilityTimeout)
+                    .build());
         } catch (SqsException e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
+            log.error(e.awsErrorDetails().errorMessage());
         }
+        return null;
     }
 
 
