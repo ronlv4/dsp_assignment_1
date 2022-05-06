@@ -5,7 +5,7 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -126,9 +126,11 @@ public class Worker {
                         .build()).toString();
 
                 MessageOperations.sendMessage(sqs, outputQueueUrl, "Success",
-                        Map.of("outputUrl", MessageAttributeValue.builder().dataType("String").stringValue(outputUrl).build(),
-                                "inputUrl", message.messageAttributes().get("fileUrl"),
-                                "analysis", message.messageAttributes().get("analysis")));
+                        new HashMap<String, MessageAttributeValue>() {{
+                            put("outputUrl", MessageAttributeValue.builder().dataType("String").stringValue(outputUrl).build());
+                            put("inputUrl", message.messageAttributes().get("fileUrl"));
+                            put("analysis", message.messageAttributes().get("analysis"));
+                        }});
 
                 MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
 

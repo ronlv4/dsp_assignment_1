@@ -69,11 +69,15 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>9</source>
-                    <target>9</target>
-                    <fork>true</fork>
-                    <executable>javac9</executable>
+                    <source>8</source>
+                    <target>8</target>
                 </configuration>
+                <!--                <configuration>-->
+<!--                    <source>9</source>-->
+<!--                    <target>9</target>-->
+<!--                    <fork>true</fork>-->
+<!--                    <executable>javac9</executable>-->
+<!--                </configuration>-->
             </plugin>
 
 <!--            <plugin>-->
