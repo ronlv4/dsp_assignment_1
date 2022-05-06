@@ -3,6 +3,8 @@ package com.example.myapp;
 import com.example.aws.ec2.Ec2Operations;
 import com.example.aws.sqs.MessageOperations;
 import com.example.aws.sqs.QueueOperations;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -29,15 +31,15 @@ public class TestWorker {
     }
 
     public static void createTestScene() {
-        String file = "POS\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
-                "CONSTITUENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
-                "DEPENDENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
-                "POS\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-                "CONSTITUENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-                "DEPENDENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-                "POS\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
-                "CONSTITUENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
-                "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
+        String file = "POS\thttps://www.gutenberg.org/files/1659/1659-0.txt\n";
+//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+//                "DEPENDENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+//                "POS\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+//                "DEPENDENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+//                "POS\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
+//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
+//                "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
         Region region = Region.US_EAST_1;
         SqsClient sqs = SqsClient.builder().region(region).build();
         String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
@@ -63,8 +65,10 @@ public class TestWorker {
 
 
     public static void main(String[] args) throws IOException {
-        createTestScene();
-        testOnCloud();
+        Logger log = LogManager.getLogger();
+        log.info("hello");
+//        createTestScene();
+//        testOnCloud();
 //        testLocally();
     }
 
