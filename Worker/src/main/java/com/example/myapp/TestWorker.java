@@ -25,7 +25,7 @@ public class TestWorker {
         byte[] userDataScriptAsBytes = Files.readAllBytes(FileSystems.getDefault().getPath("./test-managerUserData"));
         String encodedUserDataScript = Base64.getEncoder().encodeToString(userDataScriptAsBytes);
 
-        String instanceId = Ec2Operations.createEC2Instance(ec2, "Worker", "ami-02b92c281a4d3dc79", encodedUserDataScript);
+        String instanceId = Ec2Operations.createEC2Instance(ec2, "Worker", "ami-0022f774911c1d690", encodedUserDataScript);
         Ec2Operations.startInstance(ec2, instanceId);
 
     }
@@ -38,6 +38,7 @@ public class TestWorker {
 
         String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
         String outputQueueUrl = QueueOperations.createQueue(sqs, "responseQueue");
+        String failedWorkerQueueUrl = QueueOperations.createQueue(sqs, "failedWorker");
         Map<String, MessageAttributeValue> tempMap = new HashMap<>();
         tempMap.put("bucket", MessageAttributeValue.builder().dataType("String").stringValue("dspassignment1").build());
         tempMap.put("analysis", MessageAttributeValue.builder().dataType("String").stringValue("DEPENDENCY").build());

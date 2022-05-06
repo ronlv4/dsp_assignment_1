@@ -109,7 +109,7 @@ public class Worker {
                 outputFile = parsingExecution.submit(new WorkerExecution(message, s3, sqs));
                 while (!outputFile.isDone()) {
                     outputFile.get(10, TimeUnit.MINUTES);
-                    MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toMillis(15)));
+                    MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
                 }
                 parsingExecution.shutdown();
 

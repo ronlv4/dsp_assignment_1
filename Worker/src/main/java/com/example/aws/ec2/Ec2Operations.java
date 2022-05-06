@@ -21,7 +21,7 @@ public class Ec2Operations {
                 .instanceType(InstanceType.T2_MICRO)
                 .maxCount(1)
                 .minCount(1)
-                .keyName("test-linux-vm")
+                .keyName("laptop_linux_vm")
                 .userData(encodedUserData)
                 .iamInstanceProfile(iamInstanceProfile)
                 .build();
