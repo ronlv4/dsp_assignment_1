@@ -23,9 +23,12 @@ import software.amazon.awssdk.services.sqs.model.*;
 
 public class Worker {
 
+    public static final Region region = Region.US_EAST_1;
+    static SqsClient sqs = SqsClient.builder().region(region).build();
+    static S3Client s3 = S3Client.builder().region(region).build();
     static final Logger log = LogManager.getLogger();
 
-    public static void execute(String[] args, SqsClient sqs, S3Client s3){
+    public static void execute(String[] args){
         boolean shouldTerminate = false;
 
         log.info("requesting queue url of WorkerQueue");
@@ -102,21 +105,11 @@ public class Worker {
     public static void main(String[] args) {
         Region region = Region.US_EAST_1;
 
-        SqsClient sqs = SqsClient
-                .builder()
-                .region(region)
-                .build();
-
-        S3Client s3 = S3Client
-                .builder()
-                .region(region)
-                .build();
-
         String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
                 .queueName("failedWorker").build()).queueUrl();
 
         try {
-            execute(args, sqs, s3);
+            execute(args);
         } catch (Exception e){
 
             sqs.sendMessage(SendMessageRequest

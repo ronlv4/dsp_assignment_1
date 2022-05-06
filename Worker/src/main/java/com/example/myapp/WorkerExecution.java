@@ -53,7 +53,7 @@ public class WorkerExecution implements Callable<File> {
         return outputFilePath;
     }
 
-    private static File processMessage(Message message, String analysisType, String fileUrl) throws IOException {
+    private static File processMessage(String analysisType, String fileUrl) throws IOException {
         String filePath = donwloadFile(new URL(fileUrl));
         return analyzeText(filePath, analysisType);
     }
@@ -93,6 +93,6 @@ public class WorkerExecution implements Callable<File> {
     }
     @Override
     public File call() throws IOException {
-        return processMessage(message, analysisType, fileUrl);
+        return processMessage(analysisType, fileUrl);
     }
 }

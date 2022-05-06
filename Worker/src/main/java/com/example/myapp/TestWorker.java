@@ -11,9 +11,7 @@ import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class TestWorker {
     public static void testOnCloud() throws IOException {
@@ -30,28 +28,38 @@ public class TestWorker {
 
     }
 
-    public static void createTestScene(){
+    public static void createTestScene() {
+        String file = "POS\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+                "CONSTITUENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+                "DEPENDENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+                "POS\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+                "CONSTITUENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+                "DEPENDENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+                "POS\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
+                "CONSTITUENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
+                "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
         Region region = Region.US_EAST_1;
-
-
         SqsClient sqs = SqsClient.builder().region(region).build();
-
         String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
         String outputQueueUrl = QueueOperations.createQueue(sqs, "responseQueue");
         String failedWorkerQueueUrl = QueueOperations.createQueue(sqs, "failedWorker");
-        Map<String, MessageAttributeValue> tempMap = new HashMap<>();
-        tempMap.put("bucket", MessageAttributeValue.builder().dataType("String").stringValue("dspassignment1").build());
-        tempMap.put("analysis", MessageAttributeValue.builder().dataType("String").stringValue("DEPENDENCY").build());
-        tempMap.put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
-        tempMap.put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue("https://www.gutenberg.org/files/1659/1659-0.txt").build());
-        MessageOperations.sendMessage(sqs, inputQueueUrl, "some non-empty message", tempMap);
-//        MessageOperations.sendMessage(sqs,inputQueueUrl, "terminate");
+        String[] lines = file.split("\\r?\\n");
+        Arrays.stream(lines).parallel().forEach(line -> {
+            String analysis = line.split("\t")[0];
+            String fileUrl = line.split("\t")[1];
+            MessageOperations.sendMessage(sqs, inputQueueUrl, "some non-empty message", new HashMap<String, MessageAttributeValue>() {{
+                put("bucket", MessageAttributeValue.builder().dataType("String").stringValue("dspassignment1").build());
+                put("analysis", MessageAttributeValue.builder().dataType("String").stringValue(analysis).build());
+                put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
+                put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue(fileUrl).build());
+            }});
+        });
+        MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", 30, new HashMap<>());
     }
 
-    public static void testLocally(){
+    public static void testLocally() {
         Worker.main(new String[0]);
     }
-
 
 
     public static void main(String[] args) throws IOException {

@@ -10,35 +10,33 @@ import java.util.Map;
 
 public class MessageOperations {
     static final Logger log = LogManager.getLogger();
-    public static void sendMessage(SqsClient sqsClient, SendMessageRequest messageRequest) {
-        sqsClient.sendMessage(messageRequest);
-    }
 
     public static void sendMessage(SqsClient sqsClient, String queueUrl, String messageBody) {
         sendMessage(sqsClient, queueUrl, messageBody, null);
     }
 
     public static void sendMessage(SqsClient sqsClient, String queueUrl, String messageBody, Map<String, MessageAttributeValue> messageAttributeValueMap) {
-        sendMessage(sqsClient, SendMessageRequest.builder()
-                .queueUrl(queueUrl)
-                .messageAttributes(messageAttributeValueMap)
-                .messageBody(messageBody)
-                .delaySeconds(10)
-                .build());
+        sendMessage(sqsClient, queueUrl, messageBody, 5, messageAttributeValueMap);
     }
 
-    public static void sendMessage(SqsClient sqsClient, String queueUrl, Map<String, MessageAttributeValue> messageAttributeValueMap) {
-        sendMessage(sqsClient, SendMessageRequest.builder()
-                .queueUrl(queueUrl)
-                .messageAttributes(messageAttributeValueMap)
-                .delaySeconds(10)
-                .build());
+    public static void sendMessage(SqsClient sqsClient, String queueUrl, String messageBody, Integer delaySeconds, Map<String, MessageAttributeValue> messageAttributeValueMap) {
+        log.info("Sending message to queue {}", queueUrl);
+        try {
+            sqsClient.sendMessage(SendMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .messageAttributes(messageAttributeValueMap)
+                    .messageBody(messageBody)
+                    .delaySeconds(delaySeconds)
+                    .build());
+        } catch (SqsException e) {
+            log.error(e.awsErrorDetails().errorMessage());
+        }
     }
 
 
     public static void sendBatchMessages(SqsClient sqsClient, String queueUrl) {
 
-        log.info("\nSend multiple messages to url: {}", queueUrl);
+        log.info("Send multiple messages to url: {}", queueUrl);
 
         try {
             // snippet-start:[sqs.java2.sqs_example.send__multiple_messages]
@@ -57,7 +55,7 @@ public class MessageOperations {
 
     public static List<Message> receiveMessages(SqsClient sqsClient, String queueUrl) {
 
-        log.info("\nReceive messages from queue: {}", queueUrl);
+        log.info("Receive messages from queue: {}", queueUrl);
 
         try {
             // snippet-start:[sqs.java2.sqs_example.retrieve_messages]
@@ -76,7 +74,7 @@ public class MessageOperations {
 
     public static void changeMessages(SqsClient sqs, String queueUrl, List<Message> messages, Integer visibilityTimeout) {
 
-        log.info("\nChange Message Visibility to {}", visibilityTimeout);
+        log.info("Change Message Visibility to {}", visibilityTimeout);
 
         try {
             for (Message message : messages)
@@ -87,7 +85,7 @@ public class MessageOperations {
     }
 
     public static void deleteMessage(SqsClient sqsClient, String queueUrl, Message message) {
-        log.info("\nDelete Message {}", message.messageId());
+        log.info("Delete Message {}", message.messageId());
 
         try {
             DeleteMessageRequest deleteMessageRequest = DeleteMessageRequest.builder()
@@ -102,17 +100,15 @@ public class MessageOperations {
 
 
     public static void deleteMessages(SqsClient sqsClient, String queueUrl, List<Message> messages) {
-        log.info("\nDelete Messages in queue {}", queueUrl);
-        // snippet-start:[sqs.java2.sqs_example.delete_message]
+        log.info("Delete Messages in queue {}", queueUrl);
 
         for (Message message : messages) {
             deleteMessage(sqsClient, queueUrl, message);
         }
-        // snippet-end:[sqs.java2.sqs_example.delete_message]
     }
 
     public static ChangeMessageVisibilityResponse changeMessageVisibility(SqsClient sqs, String queueUrl, Message message, Integer visibilityTimeout) {
-        log.info("\nChange message Visibility to {} seconds", visibilityTimeout);
+        log.info("Change message Visibility to {} seconds", visibilityTimeout);
         try {
             return sqs.changeMessageVisibility(ChangeMessageVisibilityRequest
                     .builder()

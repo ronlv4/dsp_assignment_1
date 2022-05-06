@@ -45,7 +45,7 @@ public class Ec2Operations {
         try {
             ec2.createTags(tagRequest);
             log.info(
-                    "Successfully created EC2 Instance {} based on AMI {}\n",
+                    "Successfully created EC2 Instance {} based on AMI {}",
                     instanceId, amiId);
 
             return instanceId;

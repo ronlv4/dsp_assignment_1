@@ -11,18 +11,18 @@ public class QueueOperations {
 
     public static String createQueue(SqsClient sqsClient, String queueName) {
         try {
-            log.info("\nCreate Queue");
+            log.info("Create Queue");
 
             sqsClient.createQueue(CreateQueueRequest.builder()
                     .queueName(queueName)
                     .build());
 
-            log.info("\nGet queue url");
+            log.info("Get queue url");
 
             GetQueueUrlResponse getQueueUrlResponse =
                     sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build());
             String queueUrl = getQueueUrlResponse.queueUrl();
-            log.info("\nQueue created\nURL: " + queueUrl);
+            log.info("createdURL: {}", queueUrl);
             return queueUrl;
 
         } catch (SqsException e) {
@@ -34,7 +34,7 @@ public class QueueOperations {
 
     public static void listQueues(SqsClient sqsClient) {
 
-        log.info("\nList Queues");
+        log.info("List Queues");
         String prefix = "que";
 
         try {
@@ -62,7 +62,7 @@ public class QueueOperations {
             System.out.println(url);
         }
 
-        log.info("\nSend message");
+        log.info("Send message");
 
         try {
             sqsClient.sendMessage(SendMessageRequest.builder()
