@@ -10,11 +10,15 @@ sleep 2
 
 cd /home/ec2-user
 
-aws s3 cp s3://dspbucket12345/Worker.tar /home/ec2-user/Worker.tar
+aws s3 cp s3://dspassignment1/Worker.tar /home/ec2-user/Worker.tar
 
 tar -xf Worker.tar
 
 sleep 10
+
+export JAVA_HOME="/usr/lib/jvm/java-17-amazon-corretto.x86_64"
+
+export PATH=$JAVA_HOME/bin:$PATH
 
 sudo mvn package
 

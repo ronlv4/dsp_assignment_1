@@ -39,7 +39,7 @@ public class TestWorker {
         String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
         String outputQueueUrl = QueueOperations.createQueue(sqs, "responseQueue");
         Map<String, MessageAttributeValue> tempMap = new HashMap<>();
-        tempMap.put("bucket", MessageAttributeValue.builder().stringValue("dspbucket12345").dataType("String").build());
+        tempMap.put("bucket", MessageAttributeValue.builder().dataType("String").stringValue("dspassignment1").build());
         tempMap.put("analysis", MessageAttributeValue.builder().dataType("String").stringValue("DEPENDENCY").build());
         tempMap.put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
         tempMap.put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue("https://www.gutenberg.org/files/1659/1659-0.txt").build());
