@@ -107,7 +107,7 @@ public class Manager {
     private static void terminate(){
         try {
             executor.shutdown();
-            executor.awaitTermination(60, TimeUnit.MINUTES);
+            executor.awaitTermination(180, TimeUnit.MINUTES);
         } catch (InterruptedException interruptedException) {
             interruptedException.printStackTrace();
         }
