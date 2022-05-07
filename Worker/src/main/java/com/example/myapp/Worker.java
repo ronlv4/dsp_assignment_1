@@ -24,9 +24,7 @@ public class Worker {
     static S3Client s3 = S3Client.builder().region(region).build();
     static AWSLogger awsLogger = new AWSLogger(region);
     static final Logger log = LogManager.getLogger();
-    public static int execute(String inputQueueUrl, String[] args) throws InterruptedException {
-
-
+    public static int execute(String inputQueueUrl, String[] args) {
 
         while (true) {
 
@@ -75,6 +73,8 @@ public class Worker {
                                 .key(message.messageId())
                                 .build(),
                         RequestBody.fromFile(outputFile));
+
+                outputFile.delete();
 
                 String outputUrl = s3.utilities().getUrl(GetUrlRequest
                         .builder()
