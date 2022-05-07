@@ -6,6 +6,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
 
+import com.amazonaws.services.logs.AWSLogsClient;
 import com.amazonaws.util.EC2MetadataUtils;
 import com.example.Utils.AWSLogger;
 import com.example.aws.sqs.MessageOperations;
@@ -67,7 +68,7 @@ public class Worker {
 
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
             String outputQueueUrl = message.messageAttributes().get("responseQueue").stringValue();
-            awsLogger.writeLog(outputQueueUrl, String.format("Working on file %s", outputBucket));
+//            awsLogger.writeLog(outputQueueUrl, String.format("Working on file %s", outputBucket));
 
             try {
                 File outputFile = new WorkerExecution(message, s3, sqs).call();
