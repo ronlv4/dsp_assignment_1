@@ -6,9 +6,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
 
-import com.amazonaws.services.logs.AWSLogsClient;
 import com.amazonaws.util.EC2MetadataUtils;
-import com.example.Utils.AWSLogger;
 import com.example.aws.sqs.MessageOperations;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
