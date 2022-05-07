@@ -1,7 +1,6 @@
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
-import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 import software.amazon.awssdk.utils.IoUtils;
 
 import java.io.BufferedWriter;
@@ -70,7 +69,7 @@ public class Main {
         File f = new File(filename);
         BufferedWriter bw = new BufferedWriter(new FileWriter(f));
         bw.write("<html><body>");
-        bw.write(s);
+        bw.write(String.join("<br>", s.split("\n")));
         bw.write("</body></html>");
         bw.close();
     }
