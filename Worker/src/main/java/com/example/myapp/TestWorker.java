@@ -44,9 +44,9 @@ public class TestWorker {
 //                "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
         Region region = Region.US_EAST_1;
         SqsClient sqs = SqsClient.builder().region(region).build();
-        String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
-        String outputQueueUrl = QueueOperations.createQueue(sqs, "responseQueue");
-        String failedWorkerQueueUrl = QueueOperations.createQueue(sqs, "failedWorker");
+        String inputQueueUrl = QueueOperations.createFifoQueue(sqs, "WorkerQueue");
+        String outputQueueUrl = QueueOperations.createFifoQueue(sqs, "responseQueue");
+        String failedWorkerQueueUrl = QueueOperations.createFifoQueue(sqs, "failedWorker");
         String[] lines = file.split("\\r?\\n");
         Arrays.stream(lines).parallel().forEach(line -> {
             String analysis = line.split("\t")[0];
@@ -70,8 +70,8 @@ public class TestWorker {
         Logger log = LogManager.getRootLogger();
         log.info("hello");
         createTestScene();
-//        testOnCloud();
-        testLocally();
+        testOnCloud();
+//        testLocally();
     }
 
 

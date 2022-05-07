@@ -5,6 +5,8 @@ import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
+import java.util.HashMap;
+
 
 public class QueueOperations {
     static final Logger log = LogManager.getLogger();
@@ -13,15 +15,30 @@ public class QueueOperations {
         try {
             log.info("Create Queue");
 
-            sqsClient.createQueue(CreateQueueRequest.builder()
+            String queueUrl = sqsClient.createQueue(CreateQueueRequest.builder()
                     .queueName(queueName)
-                    .build());
+                    .build()).queueUrl();
 
-            log.info("Get queue url");
+            log.info("createdURL: {}", queueUrl);
+            return queueUrl;
 
-            GetQueueUrlResponse getQueueUrlResponse =
-                    sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build());
-            String queueUrl = getQueueUrlResponse.queueUrl();
+        } catch (SqsException e) {
+            log.error(e.awsErrorDetails().errorMessage());
+        }
+        return "";
+    }
+
+    public static String createFifoQueue(SqsClient sqsClient, String queueName) {
+        try {
+            log.info("Create FIFO Queue");
+
+            String queueUrl = sqsClient.createQueue(CreateQueueRequest.builder()
+                    .attributes(new HashMap<QueueAttributeName, String>() {{
+                        put(QueueAttributeName.FIFO_QUEUE, "true");
+                    }})
+                    .queueName(queueName)
+                    .build()).queueUrl();
+
             log.info("createdURL: {}", queueUrl);
             return queueUrl;
 
