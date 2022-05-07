@@ -38,7 +38,7 @@ public class Worker {
                     .builder()
                     .waitTimeSeconds(20)
                     .queueUrl(inputQueueUrl)
-                    .messageAttributeNames("fileUrl", "analysis", "bucket", "responseQueue")
+                    .messageAttributeNames("fileUrl", "analysis", "bucket", "responseQueue", "order")
                     .build());
 
             if (!receiveMessageResponse.hasMessages())
@@ -92,6 +92,7 @@ public class Worker {
                             put("outputUrl", MessageAttributeValue.builder().dataType("String").stringValue(outputUrl).build());
                             put("inputUrl", message.messageAttributes().get("fileUrl"));
                             put("analysis", message.messageAttributes().get("analysis"));
+                            put("order", message.messageAttributes().get("order"));
                         }});
                 timer.cancel();
                 MessageOperations.deleteMessage(sqs, inputQueueUrl, message);

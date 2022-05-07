@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class TestWorker {
     public static void testOnCloud() throws IOException {
@@ -26,22 +27,23 @@ public class TestWorker {
 
         byte[] userDataScriptAsBytes = Files.readAllBytes(FileSystems.getDefault().getPath("./test-managerUserData"));
         String encodedUserDataScript = Base64.getEncoder().encodeToString(userDataScriptAsBytes);
-
-        String instanceId = Ec2Operations.createEC2Instance(ec2, "Worker", "ami-0022f774911c1d690", encodedUserDataScript);
-        Ec2Operations.startInstance(ec2, instanceId);
+        for (int i = 0; i < 3; i++) {
+            String instanceId = Ec2Operations.createEC2Instance(ec2, "Worker", "ami-0022f774911c1d690", encodedUserDataScript);
+            Ec2Operations.startInstance(ec2, instanceId);
+        }
 
     }
 
     public static void createTestScene() {
-        String file = "POS\thttps://www.york.ac.uk/teaching/cws/wws/webpage1.html\n";
-//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
-//                "DEPENDENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
-//                "POS\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-//                "DEPENDENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-//                "POS\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
-//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
-//                "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
+        String file = "POS\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+                "CONSTITUENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+                "DEPENDENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+                "POS\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+                "CONSTITUENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+                "DEPENDENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+                "POS\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
+                "CONSTITUENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
+                "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
         Region region = Region.US_EAST_1;
         SqsClient sqs = SqsClient.builder().region(region).build();
         String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
@@ -58,7 +60,7 @@ public class TestWorker {
                 put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue(fileUrl).build());
             }});
         });
-        MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", 120, new HashMap<>());
+        MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", ((int) TimeUnit.MINUTES.toSeconds(10)), new HashMap<>());
     }
 
     public static void testLocally() {
@@ -70,7 +72,7 @@ public class TestWorker {
         Logger log = LogManager.getRootLogger();
         log.info("hello");
         createTestScene();
-//        testOnCloud();
+        testOnCloud();
 //        testLocally();
     }
 
