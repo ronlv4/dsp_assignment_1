@@ -21,7 +21,6 @@ public class Manager {
     static S3Connector s3Connector = new S3Connector(Region.US_EAST_1);
     static SQSConnector sqsConnector = new SQSConnector(Region.US_EAST_1);
     static EC2Connector ec2Connector = new EC2Connector(Region.US_EAST_1);
-    static AWSLogger awsLogger = new AWSLogger(Region.US_EAST_1);
     static ExecutorService executor = Executors.newFixedThreadPool(8);
 
     static String userData;
@@ -39,7 +38,6 @@ public class Manager {
 
         boolean running = true;
         log.info("Manager started running");
-        awsLogger.writeLog(MANAGER_TAG, "Manager started running");
         while(running) {
             Message m = sqsConnector.getMessage(MANAGER_QUEUE);
             if(Objects.nonNull(m)) {
@@ -50,7 +48,6 @@ public class Manager {
         }
         terminate();
         log.info("Manager stopped running");
-        awsLogger.writeLog(MANAGER_TAG, "Manager stopped running");
     }
 
     private static void handleRequest(Message m){
@@ -61,34 +58,35 @@ public class Manager {
         String key = m.messageAttributes().get("key").stringValue();
         String responseQueue = m.messageAttributes().get("responseQueue").stringValue();
 
-        awsLogger.createLogStream(key);
-        awsLogger.writeLog(key, String.format("Started working on file %s", key));
-
         String inp = s3Connector.readStringFromS3(bucket, key);
         String[] lines = inp.split("\\r?\\n");
         int neededWorkers = Math.min((int)Math.ceil(lines.length/n), 16);
         ec2Connector.createEC2InstancesIfNotExists(WORKER_TAG, AMI_ID, userData, neededWorkers);
 
         String queueName = "Worker-Answer-" + UUID.randomUUID().toString();
+        Set<String> neededAnswers = new HashSet<>();
         sqsConnector.createQueue(queueName);
-        awsLogger.createLogStream("Worker", queueName);
-        Arrays.stream(lines).parallel().forEach(line -> {
-            System.out.println(line);
-            String analysis = line.split("\t")[0];
-            String fileUrl = line.split("\t")[1];
+        for(int i = 0;i < lines.length;i++){
+            String analysis = lines[i].split("\t")[0];
+            String fileUrl = lines[i].split("\t")[1];
+            neededAnswers.add(Integer.toString(i));
 
             sqsConnector.sendMessage(WORKER_QUEUE, "a new job", Map.of("responseQueue", MessageAttributeValue.builder().stringValue(queueName).dataType("String").build(),
                     "fileUrl", MessageAttributeValue.builder().stringValue(fileUrl).dataType("String").build(),
                     "analysis", MessageAttributeValue.builder().stringValue(analysis).dataType("String").build(),
-                    "bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build()));
-        });
+                    "bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
+                    "order", MessageAttributeValue.builder().stringValue(Integer.toString(i)).dataType("String").build()));
+        }
 
-        int receivedMessages = 0;
+        Set<String> answers = new HashSet<>();
         StringBuilder ans = new StringBuilder();
-        while(receivedMessages < lines.length){
+        while(neededAnswers.size() != answers.size()){
             Message workerMessage = sqsConnector.getMessage(queueName);
             if(Objects.nonNull(workerMessage)){
-                receivedMessages += 1;
+                String order = workerMessage.messageAttributes().get("order").stringValue();
+                if(answers.contains(order))
+                    continue;
+                answers.add(order);
                 String outputUrl = workerMessage.messageAttributes().get("outputUrl").stringValue();
                 String inputUrl = workerMessage.messageAttributes().get("inputUrl").stringValue();
                 String analysis = workerMessage.messageAttributes().get("analysis").stringValue();
@@ -102,7 +100,6 @@ public class Manager {
         sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
 
-        awsLogger.writeLog(key, String.format("Finished working on file %s, results saved into %s", key, responseKey));
         sqsConnector.deleteQueue(queueName);
     }
 
