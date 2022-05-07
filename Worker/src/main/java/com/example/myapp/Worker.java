@@ -107,29 +107,28 @@ public class Worker {
     }
 
     public static void main(String[] args) {
-        Region region = Region.US_EAST_1;
 
-        String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
-                .queueName("failedWorker").build()).queueUrl();
+            String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
+                    .queueName("failedWorker").build()).queueUrl();
+        while (true) {
+            try {
+                execute(args);
+            } catch (Exception e) {
 
-        try {
-            execute(args);
-        } catch (Exception e){
-
-            sqs.sendMessage(SendMessageRequest
-                    .builder()
-                    .queueUrl(failedWorkerQueueUrl)
-                    .messageBody("Error: Unhandled exception occurred")
-                    .build());
+                sqs.sendMessage(SendMessageRequest
+                        .builder()
+                        .queueUrl(failedWorkerQueueUrl)
+                        .messageBody("Error: Unhandled exception occurred")
+                        .build());
+            } finally {
+                close();
+            }
         }
-        finally {
-            s3.close();
-            sqs.close();
-            Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
-        }
+    }
 
-
-
-
+    private static void close() {
+        s3.close();
+        sqs.close();
+        Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
     }
 }
