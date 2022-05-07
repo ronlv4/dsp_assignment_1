@@ -27,6 +27,7 @@ public class Worker {
     static SqsClient sqs = SqsClient.builder().region(region).build();
     static S3Client s3 = S3Client.builder().region(region).build();
     static final Logger log = LogManager.getLogger();
+    static final Thread mainThread = Thread.currentThread();
 
     public static void execute(String[] args){
         boolean shouldTerminate = false;
@@ -67,7 +68,7 @@ public class Worker {
 
             try{
                 outputFile = parsingExecution.submit(new WorkerExecution(message, s3, sqs));
-                while (!outputFile.isDone()) {
+                while (!outputFile.isDone() && !parsingExecution.isShutdown()) {
                     log.info("Changing message visibility to 15 minutes");
                     MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
                     outputFile.get(10, TimeUnit.MINUTES);
@@ -96,6 +97,9 @@ public class Worker {
                 MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
 
             } catch (Exception e) {
+                if (!Thread.currentThread().equals(mainThread))
+                    mainThread.interrupt(); // case where executor service has exception and main thread is blocked trying to get the parsed file
+                parsingExecution.shutdown();
                 MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(1)));
                 MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
             }
@@ -103,29 +107,28 @@ public class Worker {
     }
 
     public static void main(String[] args) {
-        Region region = Region.US_EAST_1;
 
-        String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
-                .queueName("failedWorker").build()).queueUrl();
+            String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
+                    .queueName("failedWorker").build()).queueUrl();
+        while (true) {
+            try {
+                execute(args);
+            } catch (Exception e) {
 
-        try {
-            execute(args);
-        } catch (Exception e){
-
-            sqs.sendMessage(SendMessageRequest
-                    .builder()
-                    .queueUrl(failedWorkerQueueUrl)
-                    .messageBody("Error: Unhandled exception occurred")
-                    .build());
+                sqs.sendMessage(SendMessageRequest
+                        .builder()
+                        .queueUrl(failedWorkerQueueUrl)
+                        .messageBody("Error: Unhandled exception occurred")
+                        .build());
+            } finally {
+                close();
+            }
         }
-        finally {
-            s3.close();
-            sqs.close();
-            Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
-        }
+    }
 
-
-
-
+    private static void close() {
+        s3.close();
+        sqs.close();
+        Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
     }
 }

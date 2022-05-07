@@ -27,7 +27,6 @@ public class QueueOperations {
 
         } catch (SqsException e) {
             log.error(e.awsErrorDetails().errorMessage());
-            System.exit(1);
         }
         return "";
     }
@@ -47,7 +46,6 @@ public class QueueOperations {
 
         } catch (SqsException e) {
             log.error(e.awsErrorDetails().errorMessage());
-            System.exit(1);
         }
     }
 
@@ -73,7 +71,6 @@ public class QueueOperations {
 
         } catch (SqsException e) {
             log.error(e.awsErrorDetails().errorMessage());
-            System.exit(1);
         }
     }
 }
