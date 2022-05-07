@@ -71,6 +71,7 @@ public class Manager {
 
         String queueName = "Worker-Answer-" + UUID.randomUUID().toString();
         sqsConnector.createQueue(queueName);
+        awsLogger.createLogStream("Worker", queueName);
         Arrays.stream(lines).parallel().forEach(line -> {
             System.out.println(line);
             String analysis = line.split("\t")[0];

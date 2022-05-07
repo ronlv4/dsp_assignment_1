@@ -1,3 +1,5 @@
+package com.example.Utils;
+
 import com.amazonaws.services.logs.AWSLogs;
 import com.amazonaws.services.logs.AWSLogsClientBuilder;
 import com.amazonaws.services.logs.model.CreateLogStreamRequest;
@@ -18,25 +20,19 @@ public class AWSLogger {
 
     public void createLogStream(String name){
         awsLogs.createLogStream(new CreateLogStreamRequest()
-                .withLogGroupName("Manager")
-                .withLogStreamName(name));
-    }
-
-    public void createLogStream(String groupName, String name){
-        awsLogs.createLogStream(new CreateLogStreamRequest()
-                .withLogGroupName(groupName)
+                .withLogGroupName("Worker")
                 .withLogStreamName(name));
     }
 
     public void deleteLogStream(String name){
         awsLogs.deleteLogStream(new DeleteLogStreamRequest()
-                .withLogGroupName("Manager")
+                .withLogGroupName("Worker")
                 .withLogStreamName(name));
     }
 
     public void writeLog(String name, String message){
         awsLogs.putLogEvents(new PutLogEventsRequest()
-                .withLogGroupName("Manager")
+                .withLogGroupName("Worker")
                 .withLogStreamName(name)
                 .withLogEvents(new InputLogEvent()
                         .withMessage(message)

@@ -5,18 +5,12 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
+import com.example.Utils.AWSLogger;
 import com.example.aws.sqs.MessageOperations;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.regions.internal.util.EC2MetadataUtils;
-import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -28,6 +22,7 @@ public class Worker {
     public static final Region region = Region.US_EAST_1;
     static SqsClient sqs = SqsClient.builder().region(region).build();
     static S3Client s3 = S3Client.builder().region(region).build();
+    static AWSLogger awsLogger = new AWSLogger(region);
     static final Logger log = LogManager.getLogger();
     public static int execute(String inputQueueUrl, String[] args) throws InterruptedException {
 
@@ -70,6 +65,7 @@ public class Worker {
 
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
             String outputQueueUrl = message.messageAttributes().get("responseQueue").stringValue();
+            awsLogger.writeLog(outputQueueUrl, String.format("Working on file %s", outputBucket));
 
             try {
                 File outputFile = new WorkerExecution(message, s3, sqs).call();
