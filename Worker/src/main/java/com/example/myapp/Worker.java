@@ -29,15 +29,9 @@ public class Worker {
     static SqsClient sqs = SqsClient.builder().region(region).build();
     static S3Client s3 = S3Client.builder().region(region).build();
     static final Logger log = LogManager.getLogger();
-    static AtomicBoolean lock = new AtomicBoolean(true);
-    public static int execute(String[] args) throws InterruptedException {
+    public static int execute(String inputQueueUrl, String[] args) throws InterruptedException {
 
-        log.info("requesting queue url of WorkerQueue");
-        String inputQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest
-                .builder()
-                .queueName("WorkerQueue")
-                .build()).queueUrl();
-        log.info("received");
+
 
         while (true) {
 
@@ -59,17 +53,13 @@ public class Worker {
                 public void run() {
                     System.out.println("Changing message visibility to 15 minutes");
                     MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
-                    lock.set(false);
                 }
             }, 50, TimeUnit.MINUTES.toMillis(10));
 
-            while (!lock.compareAndSet(false, true)) {
-            }
-
             if (message.body().equals("terminate")) {
                 log.info("got terminate message");
-                MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
                 timer.cancel();
+                MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
                 return 0;
             }
 
@@ -112,10 +102,18 @@ public class Worker {
 
         String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
                 .queueName("failedWorker").build()).queueUrl();
+
+        log.info("requesting queue url of WorkerQueue");
+        String inputQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest
+                .builder()
+                .queueName("WorkerQueue")
+                .build()).queueUrl();
+        log.info("received");
+
         int finishedCode = 1;
         while (finishedCode == 1) {
             try {
-                finishedCode = execute(args);
+                finishedCode = execute(inputQueueUrl, args);
             } catch (Exception e) {
 
                 sqs.sendMessage(SendMessageRequest
