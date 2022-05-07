@@ -44,6 +44,7 @@ public class TestWorker {
                 "POS\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
                 "CONSTITUENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
                 "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
+        Random random = new Random();
         Region region = Region.US_EAST_1;
         SqsClient sqs = SqsClient.builder().region(region).build();
         String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
@@ -58,6 +59,7 @@ public class TestWorker {
                 put("analysis", MessageAttributeValue.builder().dataType("String").stringValue(analysis).build());
                 put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
                 put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue(fileUrl).build());
+                put("order", MessageAttributeValue.builder().stringValue(Integer.toString(random.nextInt(1000))).dataType("String").build());
             }});
         });
         MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", ((int) TimeUnit.MINUTES.toSeconds(10)), new HashMap<>());
