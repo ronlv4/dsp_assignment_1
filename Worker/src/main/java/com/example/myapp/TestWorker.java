@@ -5,11 +5,13 @@ import com.example.aws.sqs.MessageOperations;
 import com.example.aws.sqs.QueueOperations;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
+import javax.security.auth.login.Configuration;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -65,7 +67,7 @@ public class TestWorker {
 
 
     public static void main(String[] args) throws IOException {
-        Logger log = LogManager.getLogger();
+        Logger log = LogManager.getRootLogger();
         log.info("hello");
 //        createTestScene();
 //        testOnCloud();

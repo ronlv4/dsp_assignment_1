@@ -2,10 +2,9 @@ package com.example.myapp;
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.*;
 
 import com.example.aws.sqs.MessageOperations;
 import org.apache.logging.log4j.LogManager;
@@ -53,6 +52,15 @@ public class Worker {
                 continue;
 
             Message message = receiveMessageResponse.messages().get(0);
+            Timer timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    log.info("Changing message visibility to 15 minutes");
+                    MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
+                }
+            }, 50, TimeUnit.MINUTES.toMillis(10));
+
             if (message.body().equals("terminate")) {
                 log.info("got terminate message");
                 shouldTerminate = true;
@@ -63,23 +71,14 @@ public class Worker {
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
             String outputQueueUrl = message.messageAttributes().get("responseQueue").stringValue();
 
-            ExecutorService parsingExecution = Executors.newSingleThreadExecutor();
-            Future<File> outputFile;
-
-            try{
-                outputFile = parsingExecution.submit(new WorkerExecution(message, s3, sqs));
-                while (!outputFile.isDone() && !parsingExecution.isShutdown()) {
-                    log.info("Changing message visibility to 15 minutes");
-                    MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
-                    outputFile.get(10, TimeUnit.MINUTES);
-                }
-                parsingExecution.shutdown();
+            try {
+                File outputFile = new WorkerExecution(message, s3, sqs).call();
 
                 s3.putObject(PutObjectRequest.builder()
                                 .bucket(outputBucket)
                                 .key(message.messageId())
                                 .build(),
-                        RequestBody.fromFile(outputFile.get()));
+                        RequestBody.fromFile(outputFile));
 
                 String outputUrl = s3.utilities().getUrl(GetUrlRequest
                         .builder()
@@ -95,11 +94,8 @@ public class Worker {
                         }});
 
                 MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
-
             } catch (Exception e) {
-                if (!Thread.currentThread().equals(mainThread))
-                    mainThread.interrupt(); // case where executor service has exception and main thread is blocked trying to get the parsed file
-                parsingExecution.shutdown();
+                timer.cancel();
                 MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(1)));
                 MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
             }
