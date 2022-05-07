@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class Manager {
     private static final String WORKER_TAG = "Worker";
-    private static final String MANAGER_TAG = "Manager";
     private static final String WORKER_QUEUE = "WorkerQueue";
     private static final String MANAGER_QUEUE = "ManagerQueue";
     private static final String AMI_ID = "ami-0f9fc25dd2506cf6d";
@@ -64,6 +63,7 @@ public class Manager {
         ec2Connector.createEC2InstancesIfNotExists(WORKER_TAG, AMI_ID, userData, neededWorkers);
 
         String queueName = "Worker-Answer-" + UUID.randomUUID().toString();
+        log.info(String.format("Answers for file %s will be written to queue %s", key, queueName));
         Set<String> neededAnswers = new HashSet<>();
         sqsConnector.createQueue(queueName);
         for(int i = 0;i < lines.length;i++){
@@ -97,6 +97,7 @@ public class Manager {
 
         String responseKey = "Output-File-" + UUID.randomUUID().toString();
         s3Connector.writeStringToS3(bucket, responseKey, ans.toString());
+        log.info(String.format("Writing file %s to s3", responseKey));
         sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
 
@@ -112,6 +113,7 @@ public class Manager {
         }
         finally {
             List<Instance> workersToTerminate = ec2Connector.getInstancesWithTag(WORKER_TAG);
+            log.info(String.format("Sending %d termination messages", workersToTerminate.size()));
             for(int i = 0;i < workersToTerminate.size(); i++){
                 sqsConnector.sendMessage(WORKER_QUEUE, "terminate", Map.of());
             }
