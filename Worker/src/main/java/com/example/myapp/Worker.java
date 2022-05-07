@@ -72,7 +72,6 @@ public class Worker {
                 s3.putObject(PutObjectRequest.builder()
                                 .bucket(outputBucket)
                                 .key(message.messageId())
-                                .acl(ObjectCannedACL.PUBLIC_READ)
                                 .build(),
                         RequestBody.fromFile(outputFile));
 

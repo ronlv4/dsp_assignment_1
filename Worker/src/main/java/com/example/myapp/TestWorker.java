@@ -60,7 +60,7 @@ public class TestWorker {
                 put("order", MessageAttributeValue.builder().stringValue(Integer.toString(random.nextInt(1000))).dataType("String").build());
             }});
         });
-        MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", ((int) TimeUnit.MINUTES.toSeconds(10)), new HashMap<>());
+//        MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", ((int) TimeUnit.MINUTES.toSeconds(10)), new HashMap<>());
     }
 
     public static void testLocally() {
