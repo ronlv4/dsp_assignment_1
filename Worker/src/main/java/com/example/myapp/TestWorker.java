@@ -33,7 +33,7 @@ public class TestWorker {
     }
 
     public static void createTestScene() {
-        String file = "POS\thttps://www.gutenberg.org/files/1659/1659-0.txt\n";
+        String file = "POS\thttps://www.york.ac.uk/teaching/cws/wws/webpage1.html\n";
 //                "CONSTITUENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
 //                "DEPENDENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
 //                "POS\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
@@ -69,9 +69,9 @@ public class TestWorker {
     public static void main(String[] args) throws IOException {
         Logger log = LogManager.getRootLogger();
         log.info("hello");
-//        createTestScene();
+        createTestScene();
 //        testOnCloud();
-//        testLocally();
+        testLocally();
     }
 
 
