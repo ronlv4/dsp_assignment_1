@@ -27,7 +27,6 @@ public class Worker {
     public static final Region region = Region.US_EAST_1;
     static SqsClient sqs = SqsClient.builder().region(region).build();
     static S3Client s3 = S3Client.builder().region(region).build();
-    static AWSLogger awsLogger = new AWSLogger(region);
     static final Logger log = LogManager.getLogger();
     public static int execute(String inputQueueUrl, String[] args) {
 
@@ -68,7 +67,6 @@ public class Worker {
 
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
             String outputQueueUrl = message.messageAttributes().get("responseQueue").stringValue();
-//            awsLogger.writeLog(outputQueueUrl, String.format("Working on file %s", outputBucket));
 
             try {
                 File outputFile = new WorkerExecution(message, s3, sqs).call();
