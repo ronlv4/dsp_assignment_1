@@ -49,8 +49,13 @@ public class Worker {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    System.out.println("Changing message visibility to 15 minutes");
-                    MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
+                    try{
+                        System.out.println("Changing message visibility to 15 minutes");
+                        MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
+                    }
+                    catch (Exception e){
+                        log.error("Could not change message visibility", e);
+                    }
                 }
             }, 50, TimeUnit.MINUTES.toMillis(10));
 
