@@ -5,12 +5,17 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
+
+import com.amazonaws.services.logs.AWSLogsClient;
+import com.amazonaws.util.EC2MetadataUtils;
 import com.example.Utils.AWSLogger;
 import com.example.aws.sqs.MessageOperations;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -63,7 +68,7 @@ public class Worker {
 
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
             String outputQueueUrl = message.messageAttributes().get("responseQueue").stringValue();
-            awsLogger.writeLog(outputQueueUrl, String.format("Working on file %s", outputBucket));
+//            awsLogger.writeLog(outputQueueUrl, String.format("Working on file %s", outputBucket));
 
             try {
                 File outputFile = new WorkerExecution(message, s3, sqs).call();
@@ -130,6 +135,6 @@ public class Worker {
     private static void close() {
         s3.close();
         sqs.close();
-//        Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
+        Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
     }
 }

@@ -58,7 +58,7 @@ public class TestWorker {
                 put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue(fileUrl).build());
             }});
         });
-        MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", 30, new HashMap<>());
+        MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", 120, new HashMap<>());
     }
 
     public static void testLocally() {
@@ -71,7 +71,7 @@ public class TestWorker {
         log.info("hello");
         createTestScene();
 //        testOnCloud();
-        testLocally();
+//        testLocally();
     }
 
 

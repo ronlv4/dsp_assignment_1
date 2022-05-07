@@ -72,6 +72,7 @@ public class WorkerExecution implements Callable<File> {
         String[] parserArgs = {
                 "-model", "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz",
                 "-sentences", "newline",
+                "-maxLength", "50",
                 "-outputFormat", outputFormat,
                 "-writeOutputFiles",
                 "-outputFilesExtension", outputFileExtension,
