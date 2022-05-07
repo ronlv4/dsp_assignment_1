@@ -2,7 +2,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.utils.IoUtils;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;

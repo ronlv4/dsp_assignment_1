@@ -1,3 +1,4 @@
+import com.amazonaws.util.EC2MetadataUtils;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.model.Instance;
@@ -116,11 +117,7 @@ public class Manager {
             for(int i = 0;i < workersToTerminate.size(); i++){
                 sqsConnector.sendMessage(WORKER_QUEUE, "terminate", Map.of());
             }
-
-//            int terminated = ec2Connector.terminateInstances(workersToTerminate.stream().map(Instance::instanceId).collect(Collectors.toList()));
-//            if(terminated < workersToTerminate.size())
-//                System.out.println("Not all workers were terminated!");
-//            ec2Connector.terminateInstances(List.of(EC2MetadataUtils.getInstanceId()));
+            ec2Connector.terminateInstances(List.of(EC2MetadataUtils.getInstanceId()));
         }
     }
 }
