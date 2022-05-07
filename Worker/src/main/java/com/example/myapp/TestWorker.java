@@ -70,7 +70,7 @@ public class TestWorker {
         Logger log = LogManager.getRootLogger();
         log.info("hello");
         createTestScene();
-        testOnCloud();
+//        testOnCloud();
 //        testLocally();
     }
 
