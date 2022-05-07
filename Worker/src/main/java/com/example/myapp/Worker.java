@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.example.aws.sqs.MessageOperations;
 import org.apache.logging.log4j.LogManager;
@@ -26,10 +29,8 @@ public class Worker {
     static SqsClient sqs = SqsClient.builder().region(region).build();
     static S3Client s3 = S3Client.builder().region(region).build();
     static final Logger log = LogManager.getLogger();
-    static final Thread mainThread = Thread.currentThread();
-
-    public static void execute(String[] args){
-        boolean shouldTerminate = false;
+    static AtomicBoolean lock = new AtomicBoolean(true);
+    public static int execute(String[] args) throws InterruptedException {
 
         log.info("requesting queue url of WorkerQueue");
         String inputQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest
@@ -38,7 +39,7 @@ public class Worker {
                 .build()).queueUrl();
         log.info("received");
 
-        while (!shouldTerminate) {
+        while (true) {
 
             log.info("receiving messages from {}", inputQueueUrl);
             ReceiveMessageResponse receiveMessageResponse = sqs.receiveMessage(ReceiveMessageRequest
@@ -56,16 +57,20 @@ public class Worker {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    log.info("Changing message visibility to 15 minutes");
+                    System.out.println("Changing message visibility to 15 minutes");
                     MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
+                    lock.set(false);
                 }
             }, 50, TimeUnit.MINUTES.toMillis(10));
 
+            while (!lock.compareAndSet(false, true)) {
+            }
+
             if (message.body().equals("terminate")) {
                 log.info("got terminate message");
-                shouldTerminate = true;
                 MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
-                continue;
+                timer.cancel();
+                return 0;
             }
 
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
@@ -92,39 +97,40 @@ public class Worker {
                             put("inputUrl", message.messageAttributes().get("fileUrl"));
                             put("analysis", message.messageAttributes().get("analysis"));
                         }});
-
+                timer.cancel();
                 MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
             } catch (Exception e) {
                 timer.cancel();
                 MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(1)));
                 MessageOperations.sendMessage(sqs, outputQueueUrl, "Error: " + e.getMessage());
+                return 1;
             }
         }
     }
 
     public static void main(String[] args) {
 
-            String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
-                    .queueName("failedWorker").build()).queueUrl();
-        while (true) {
+        String failedWorkerQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder()
+                .queueName("failedWorker").build()).queueUrl();
+        int finishedCode = 1;
+        while (finishedCode == 1) {
             try {
-                execute(args);
+                finishedCode = execute(args);
             } catch (Exception e) {
 
                 sqs.sendMessage(SendMessageRequest
                         .builder()
                         .queueUrl(failedWorkerQueueUrl)
-                        .messageBody("Error: Unhandled exception occurred")
+                        .messageBody("Error: Unhandled exception occurred" + e.getMessage())
                         .build());
-            } finally {
-                close();
             }
         }
+        close();
     }
 
     private static void close() {
         s3.close();
         sqs.close();
-        Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
+//        Ec2Client.builder().build().terminateInstances(TerminateInstancesRequest.builder().instanceIds(EC2MetadataUtils.getInstanceId()).build());
     }
 }
