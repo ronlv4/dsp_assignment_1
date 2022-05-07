@@ -1,19 +1,20 @@
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.regions.internal.util.EC2MetadataUtils;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.utils.IoUtils;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
+@Slf4j
 public class Manager {
     private static final String WORKER_TAG = "Worker";
+    private static final String WORKER_QUEUE = "WorkerQueue";
+    private static final String MANAGER_QUEUE = "ManagerQueue";
     private static final String AMI_ID = "ami-0f9fc25dd2506cf6d";
     static S3Connector s3Connector = new S3Connector(Region.US_EAST_1);
     static SQSConnector sqsConnector = new SQSConnector(Region.US_EAST_1);
@@ -34,8 +35,9 @@ public class Manager {
     public static void main(String[] args){
 
         boolean running = true;
+        log.info("Manager started running");
         while(running) {
-            Message m = sqsConnector.getMessage("ManagerQueue");
+            Message m = sqsConnector.getMessage(MANAGER_QUEUE);
             if(Objects.nonNull(m)) {
                 if(m.messageAttributes().get("terminate").stringValue().equals("1"))
                     running = false;
@@ -56,7 +58,6 @@ public class Manager {
         int neededWorkers = Math.min((int)Math.ceil(lines.length/n), 16);
         ec2Connector.createEC2InstancesIfNotExists(WORKER_TAG, AMI_ID, userData, neededWorkers);
 
-
         String queueName = "Worker-Answer-" + UUID.randomUUID().toString();
         sqsConnector.createQueue(queueName);
         Arrays.stream(lines).parallel().forEach(line -> {
@@ -64,7 +65,7 @@ public class Manager {
             String analysis = line.split("\t")[0];
             String fileUrl = line.split("\t")[1];
 
-            sqsConnector.sendMessage("WorkerQueue", "a new job", Map.of("responseQueue", MessageAttributeValue.builder().stringValue(queueName).dataType("String").build(),
+            sqsConnector.sendMessage(WORKER_QUEUE, "a new job", Map.of("responseQueue", MessageAttributeValue.builder().stringValue(queueName).dataType("String").build(),
                     "fileUrl", MessageAttributeValue.builder().stringValue(fileUrl).dataType("String").build(),
                     "analysis", MessageAttributeValue.builder().stringValue(analysis).dataType("String").build(),
                     "bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build()));
@@ -89,7 +90,7 @@ public class Manager {
         sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
 
-        sqsConnector.deleteMessage("ManagerQueue", m);
+        sqsConnector.deleteMessage(MANAGER_QUEUE, m);
         sqsConnector.deleteQueue(queueName);
     }
 
@@ -102,10 +103,14 @@ public class Manager {
         }
         finally {
             List<Instance> workersToTerminate = ec2Connector.getInstancesWithTag(WORKER_TAG);
-            int terminated = ec2Connector.terminateInstances(workersToTerminate.stream().map(Instance::instanceId).collect(Collectors.toList()));
-            if(terminated < workersToTerminate.size())
-                System.out.println("Not all workers were terminated!");
-            ec2Connector.terminateInstances(List.of(EC2MetadataUtils.getInstanceId()));
+            for(int i = 0;i < workersToTerminate.size(); i++){
+                sqsConnector.sendMessage(WORKER_QUEUE, "terminate", Map.of());
+            }
+
+//            int terminated = ec2Connector.terminateInstances(workersToTerminate.stream().map(Instance::instanceId).collect(Collectors.toList()));
+//            if(terminated < workersToTerminate.size())
+//                System.out.println("Not all workers were terminated!");
+//            ec2Connector.terminateInstances(List.of(EC2MetadataUtils.getInstanceId()));
         }
     }
 }
