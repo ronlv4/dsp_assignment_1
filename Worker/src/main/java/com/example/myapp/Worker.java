@@ -56,7 +56,7 @@ public class Worker {
                         MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
                     }
                     catch (Exception e){
-                        log.error("Could not change message availability", e);
+                        log.error("Could not change message visibility", e);
                     }
                 }
             }, 50, TimeUnit.MINUTES.toMillis(10));
