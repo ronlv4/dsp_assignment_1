@@ -13,12 +13,14 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class Manager {
     private static final String WORKER_TAG = "Worker";
+    private static final String MANAGER_TAG = "Manager";
     private static final String WORKER_QUEUE = "WorkerQueue";
     private static final String MANAGER_QUEUE = "ManagerQueue";
     private static final String AMI_ID = "ami-0f9fc25dd2506cf6d";
     static S3Connector s3Connector = new S3Connector(Region.US_EAST_1);
     static SQSConnector sqsConnector = new SQSConnector(Region.US_EAST_1);
     static EC2Connector ec2Connector = new EC2Connector(Region.US_EAST_1);
+    static AWSLogger awsLogger = new AWSLogger(Region.US_EAST_1);
     static ExecutorService executor = Executors.newFixedThreadPool(8);
 
     static String userData;
@@ -36,6 +38,7 @@ public class Manager {
 
         boolean running = true;
         log.info("Manager started running");
+        awsLogger.writeLog(MANAGER_TAG, "Manager started running");
         while(running) {
             Message m = sqsConnector.getMessage(MANAGER_QUEUE);
             if(Objects.nonNull(m)) {
@@ -45,14 +48,21 @@ public class Manager {
             }
         }
         terminate();
+        log.info("Manager stopped running");
+        awsLogger.writeLog(MANAGER_TAG, "Manager stopped running");
     }
 
     private static void handleRequest(Message m){
-        System.out.println(m.messageAttributes());
+        sqsConnector.deleteMessage(MANAGER_QUEUE, m);
+
         double n = Double.parseDouble(m.messageAttributes().get("n").stringValue());
         String bucket = m.messageAttributes().get("bucket").stringValue();
         String key = m.messageAttributes().get("key").stringValue();
         String responseQueue = m.messageAttributes().get("responseQueue").stringValue();
+
+        awsLogger.createLogStream(key);
+        awsLogger.writeLog(key, String.format("Started working on file %s", key));
+
         String inp = s3Connector.readStringFromS3(bucket, key);
         String[] lines = inp.split("\\r?\\n");
         int neededWorkers = Math.min((int)Math.ceil(lines.length/n), 16);
@@ -90,7 +100,7 @@ public class Manager {
         sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
 
-        sqsConnector.deleteMessage(MANAGER_QUEUE, m);
+        awsLogger.writeLog(key, String.format("Finished working on file %s, results saved into %s", key, responseKey));
         sqsConnector.deleteQueue(queueName);
     }
 
