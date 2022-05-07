@@ -1,4 +1,23 @@
-#!/bin/bash
+#!/bin/bash -xe
+
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+
 sudo yum install java -y
-aws s3 cp s3://shir11226543666123/Worker.jar .
-java -jar Worker.jar
+
+sudo yum install maven -y
+
+sleep 2
+
+cd /home/ec2-user
+
+aws s3 cp s3://dspassignment1/Worker.tar /home/ec2-user/Worker.tar
+
+tar -xf Worker.tar
+
+sleep 10
+
+sudo mvn package
+
+sleep 2
+
+sudo mvn exec:java -Dexec.mainClass="com.example.myapp.Worker"
