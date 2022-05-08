@@ -46,20 +46,20 @@ public class TestWorker {
         Region region = Region.US_EAST_1;
         SqsClient sqs = SqsClient.builder().region(region).build();
         String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
-        String outputQueueUrl = QueueOperations.createQueue(sqs, "responseQueue");
+        String outputQueueUrl = QueueOperations.createQueue(sqs, "Worker-Answer-" + UUID.randomUUID());
         String failedWorkerQueueUrl = QueueOperations.createQueue(sqs, "failedWorker");
         String[] lines = file.split("\\r?\\n");
-        Arrays.stream(lines).parallel().forEach(line -> {
-            String analysis = line.split("\t")[0];
-            String fileUrl = line.split("\t")[1];
-            MessageOperations.sendMessage(sqs, inputQueueUrl, "some non-empty message", new HashMap<String, MessageAttributeValue>() {{
-                put("bucket", MessageAttributeValue.builder().dataType("String").stringValue("dspassignment1").build());
-                put("analysis", MessageAttributeValue.builder().dataType("String").stringValue(analysis).build());
-                put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
-                put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue(fileUrl).build());
-                put("order", MessageAttributeValue.builder().stringValue(Integer.toString(random.nextInt(1000))).dataType("String").build());
-            }});
-        });
+//        Arrays.stream(lines).parallel().forEach(line -> {
+//            String analysis = line.split("\t")[0];
+//            String fileUrl = line.split("\t")[1];
+//            MessageOperations.sendMessage(sqs, inputQueueUrl, "some non-empty message", new HashMap<String, MessageAttributeValue>() {{
+//                put("bucket", MessageAttributeValue.builder().dataType("String").stringValue("dspassignment1").build());
+//                put("analysis", MessageAttributeValue.builder().dataType("String").stringValue(analysis).build());
+//                put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
+//                put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue(fileUrl).build());
+//                put("order", MessageAttributeValue.builder().stringValue(Integer.toString(random.nextInt(1000))).dataType("String").build());
+//            }});
+//        });
 //        MessageOperations.sendMessage(sqs, inputQueueUrl, "terminate", ((int) TimeUnit.MINUTES.toSeconds(10)), new HashMap<>());
     }
 
@@ -72,7 +72,7 @@ public class TestWorker {
         Logger log = LogManager.getRootLogger();
         log.info("hello");
         createTestScene();
-        testOnCloud();
+//        testOnCloud();
 //        testLocally();
     }
 

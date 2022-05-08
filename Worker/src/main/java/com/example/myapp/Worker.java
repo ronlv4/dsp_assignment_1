@@ -26,6 +26,7 @@ public class Worker {
     static SqsClient sqs = SqsClient.builder().region(region).build();
     static S3Client s3 = S3Client.builder().region(region).build();
     static final Logger log = LogManager.getLogger();
+
     public static int execute(String inputQueueUrl, String[] args) {
 
         while (true) {
@@ -35,6 +36,7 @@ public class Worker {
                     .builder()
                     .waitTimeSeconds(20)
                     .queueUrl(inputQueueUrl)
+                    .maxNumberOfMessages(1)
                     .messageAttributeNames("fileUrl", "analysis", "bucket", "responseQueue", "order")
                     .build());
 
@@ -46,11 +48,10 @@ public class Worker {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    try{
+                    try {
                         System.out.println("Changing message visibility to 15 minutes");
                         MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
-                    }
-                    catch (Exception e){
+                    } catch (Exception e) {
                         log.error("Could not change message visibility", e);
                     }
                 }
