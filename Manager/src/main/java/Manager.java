@@ -104,6 +104,7 @@ public class Manager {
     }
 
     private static void terminate(){
+        log.info("Started termination process");
         while(!messagesFromWorkers.isEmpty());
         log.info("All message ids were handled");
         try {
