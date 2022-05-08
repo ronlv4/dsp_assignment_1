@@ -8,6 +8,7 @@ import java.util.concurrent.*;
 
 import com.amazonaws.util.EC2MetadataUtils;
 import com.example.aws.sqs.MessageOperations;
+import com.example.aws.sqs.QueueOperations;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -35,7 +36,7 @@ public class Worker {
                     .builder()
                     .waitTimeSeconds(20)
                     .queueUrl(inputQueueUrl)
-                    .messageAttributeNames("fileUrl", "analysis", "bucket", "responseQueue", "order")
+                    .messageAttributeNames("fileUrl", "analysis", "bucket", "responseQueueName", "order")
                     .build());
 
             if (!receiveMessageResponse.hasMessages())
@@ -64,7 +65,11 @@ public class Worker {
             }
 
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
-            String outputQueueUrl = message.messageAttributes().get("responseQueue").stringValue();
+            String outputQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest
+                    .builder()
+                    .queueName(message.messageAttributes().get("responseQueueName").stringValue())
+                    .build())
+                    .queueUrl();
 
             try {
                 File outputFile = new WorkerExecution(message, s3, sqs).call();

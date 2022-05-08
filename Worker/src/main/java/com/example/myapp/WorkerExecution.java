@@ -5,6 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 
 import java.io.File;
@@ -31,7 +32,10 @@ public class WorkerExecution implements Callable<File> {
     public WorkerExecution(Message queueMessage, S3Client s3Client, SqsClient sqsClient) {
         message = queueMessage;
         outputBucket = message.messageAttributes().get("bucket").stringValue();
-        outputQueueUrl = message.messageAttributes().get("responseQueue").stringValue();
+        outputQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest
+                .builder()
+                .queueName(message.messageAttributes().get("responseQueueName").stringValue())
+                .build()).queueUrl();
         fileUrl = message.messageAttributes().get("fileUrl").stringValue();
         analysisType = message.messageAttributes().get("analysis").stringValue();
         s3 = s3Client;
