@@ -10,17 +10,23 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Slf4j
 public class Manager {
     private static final String WORKER_TAG = "Worker";
     private static final String WORKER_QUEUE = "WorkerQueue";
+    private static final String WORKER_ANSWER_QUEUE = "WorkerAnswerQueue";
     private static final String MANAGER_QUEUE = "ManagerQueue";
     private static final String AMI_ID = "ami-0f9fc25dd2506cf6d";
+    private static final String BUCKET = "shir11226543666123";
     static S3Connector s3Connector = new S3Connector(Region.US_EAST_1);
     static SQSConnector sqsConnector = new SQSConnector(Region.US_EAST_1);
     static EC2Connector ec2Connector = new EC2Connector(Region.US_EAST_1);
     static ExecutorService executor = Executors.newFixedThreadPool(8);
+    static Map<String, ArrayList<Message>> messagesFromWorkers = new HashMap<>();
+    static ReadWriteLock lock = new ReentrantReadWriteLock();
 
     static String userData;
 
@@ -37,6 +43,7 @@ public class Manager {
 
         boolean running = true;
         log.info("Manager started running");
+        new Thread(Manager::waitForAnswers).start();
         while(running) {
             Message m = sqsConnector.getMessage(MANAGER_QUEUE);
             if(Objects.nonNull(m)) {
@@ -62,52 +69,44 @@ public class Manager {
         int neededWorkers = Math.min((int)Math.ceil(lines.length/n), 16);
         ec2Connector.createEC2InstancesIfNotExists(WORKER_TAG, AMI_ID, userData, neededWorkers);
 
-        String queueName = "Worker-Answer-" + UUID.randomUUID().toString();
-        log.info(String.format("Answers for file %s will be written to queue %s", key, queueName));
-        Set<String> neededAnswers = new HashSet<>();
-        sqsConnector.createQueue(queueName);
+        log.info(String.format("Answers for file %s will be written to id %s", key, responseQueue));
+        messagesFromWorkers.put(responseQueue, new ArrayList<>(Arrays.asList(new Message[lines.length])));
         for(int i = 0;i < lines.length;i++){
             String analysis = lines[i].split("\t")[0];
             String fileUrl = lines[i].split("\t")[1];
-            neededAnswers.add(Integer.toString(i));
 
-            sqsConnector.sendMessage(WORKER_QUEUE, "a new job", Map.of("responseQueue", MessageAttributeValue.builder().stringValue(queueName).dataType("String").build(),
+            sqsConnector.sendMessage(WORKER_QUEUE, "a new job", Map.of(
+                    "responseQueue", MessageAttributeValue.builder().stringValue(WORKER_ANSWER_QUEUE).dataType("String").build(),
+                    "answerId", MessageAttributeValue.builder().stringValue(responseQueue).dataType("String").build(),
                     "fileUrl", MessageAttributeValue.builder().stringValue(fileUrl).dataType("String").build(),
                     "analysis", MessageAttributeValue.builder().stringValue(analysis).dataType("String").build(),
                     "bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                     "order", MessageAttributeValue.builder().stringValue(Integer.toString(i)).dataType("String").build()));
         }
+    }
 
-        Set<String> answers = new HashSet<>();
+    private static void returnAnswer(ArrayList<Message> messages, String responseQueue){
         StringBuilder ans = new StringBuilder();
-        while(neededAnswers.size() != answers.size()){
-            Message workerMessage = sqsConnector.getMessage(queueName);
-            if(Objects.nonNull(workerMessage)){
-                String order = workerMessage.messageAttributes().get("order").stringValue();
-                if(answers.contains(order))
-                    continue;
-                answers.add(order);
-                String outputUrl = workerMessage.messageAttributes().get("outputUrl").stringValue();
-                String inputUrl = workerMessage.messageAttributes().get("inputUrl").stringValue();
-                String analysis = workerMessage.messageAttributes().get("analysis").stringValue();
-                ans.append(String.format("%s: %s %s\n", analysis, inputUrl, outputUrl));
-                sqsConnector.deleteMessage(queueName, workerMessage);
-            }
+        for(Message m : messages){
+            String outputUrl = m.messageAttributes().get("outputUrl").stringValue();
+            String inputUrl = m.messageAttributes().get("inputUrl").stringValue();
+            String analysis = m.messageAttributes().get("analysis").stringValue();
+            ans.append(String.format("%s: %s %s\n", analysis, inputUrl, outputUrl));
         }
 
         String responseKey = "Output-File-" + UUID.randomUUID().toString();
-        s3Connector.writeStringToS3(bucket, responseKey, ans.toString());
+        s3Connector.writeStringToS3(BUCKET, responseKey, ans.toString());
         log.info(String.format("Writing file %s to s3", responseKey));
-        sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
+        sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(BUCKET).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
 
-        sqsConnector.deleteQueue(queueName);
     }
 
     private static void terminate(){
+        while(!messagesFromWorkers.isEmpty());
         try {
             executor.shutdown();
-            executor.awaitTermination(180, TimeUnit.MINUTES);
+            executor.awaitTermination(10, TimeUnit.MINUTES);
         } catch (InterruptedException interruptedException) {
             interruptedException.printStackTrace();
         }
@@ -118,6 +117,24 @@ public class Manager {
                 sqsConnector.sendMessage(WORKER_QUEUE, "terminate", Map.of());
             }
             ec2Connector.terminateInstances(List.of(EC2MetadataUtils.getInstanceId()));
+        }
+    }
+
+    private static void waitForAnswers(){
+        while(true){
+            Message m = sqsConnector.getMessage(WORKER_ANSWER_QUEUE);
+            if(Objects.nonNull(m)) {
+                executor.submit(() -> sqsConnector.deleteMessage(WORKER_ANSWER_QUEUE, m));
+                String id = m.messageAttributes().get("answerId").stringValue();
+                int order = Integer.parseInt(m.messageAttributes().get("order").stringValue());
+                if(messagesFromWorkers.containsKey(id)){
+                    messagesFromWorkers.get(id).set(order, m);
+                    if(messagesFromWorkers.get(id).stream().noneMatch(Objects::isNull)){
+                        executor.submit(() -> returnAnswer(messagesFromWorkers.get(id), id));
+                        messagesFromWorkers.remove(id);
+                    }
+                }
+            }
         }
     }
 }

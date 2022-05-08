@@ -10,7 +10,7 @@ sleep 2
 
 cd /home/ec2-user
 
-aws s3 cp s3://dspassignment1/Worker.tar /home/ec2-user/Worker.tar
+aws s3 cp s3://shir11226543666123/Worker.tar /home/ec2-user/Worker.tar
 
 tar -xf Worker.tar
 
