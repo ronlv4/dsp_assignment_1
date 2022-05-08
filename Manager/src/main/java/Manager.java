@@ -105,6 +105,7 @@ public class Manager {
 
     private static void terminate(){
         while(!messagesFromWorkers.isEmpty());
+        log.info("All message ids were handled");
         try {
             executor.shutdown();
             executor.awaitTermination(10, TimeUnit.MINUTES);
