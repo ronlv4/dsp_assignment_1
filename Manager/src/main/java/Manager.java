@@ -10,8 +10,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Slf4j
 public class Manager {
@@ -25,7 +23,7 @@ public class Manager {
     static EC2Connector ec2Connector = new EC2Connector(Region.US_EAST_1);
     static ExecutorService executor = Executors.newFixedThreadPool(8);
     static Map<String, ArrayList<Message>> messagesFromWorkers = new HashMap<>();
-    static ReadWriteLock lock = new ReentrantReadWriteLock();
+    static boolean acceptNewJobs = true;
     static boolean running = true;
 
     static String userData;
@@ -43,20 +41,19 @@ public class Manager {
 
         log.info("Manager started running");
         new Thread(Manager::waitForAnswers).start();
-        while(running) {
+        while(acceptNewJobs) {
             Message m = sqsConnector.getMessage(MANAGER_QUEUE);
             if(Objects.nonNull(m)) {
-                executor.submit(() -> handleRequest(m, m.messageAttributes().get("terminate").stringValue().equals("1")));
+                executor.submit(() -> handleRequest(m));
                 if(m.messageAttributes().get("terminate").stringValue().equals("1"))
-                    break;
+                    acceptNewJobs=false;
             }
         }
-        while(running);
         terminate();
         log.info("Manager stopped running");
     }
 
-    private static void handleRequest(Message m, boolean doTerminate){
+    private static void handleRequest(Message m){
         sqsConnector.deleteMessage(MANAGER_QUEUE, m);
 
         double n = Double.parseDouble(m.messageAttributes().get("n").stringValue());
@@ -83,7 +80,6 @@ public class Manager {
                     "bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                     "order", MessageAttributeValue.builder().stringValue(Integer.toString(i)).dataType("String").build()));
         }
-        running = !doTerminate;
     }
 
     private static void returnAnswer(ArrayList<Message> messages, String responseQueue){
@@ -107,9 +103,9 @@ public class Manager {
 
     private static void terminate(){
         try {
+            while(running)
+                Thread.sleep(1000);
             log.info("Started termination process");
-            while(!messagesFromWorkers.isEmpty());
-            log.info("All message ids were handled");
             executor.shutdown();
             executor.awaitTermination(10, TimeUnit.MINUTES);
         } catch (InterruptedException interruptedException) {
@@ -140,6 +136,8 @@ public class Manager {
                         executor.submit(() -> returnAnswer(messagesFromWorkers.get(id), id));
                         messagesFromWorkers.remove(id);
                         log.info(String.format("%d unfinished tasks left", messagesFromWorkers.size()));
+                        if(!acceptNewJobs && messagesFromWorkers.isEmpty())
+                            running = false;
                     }
                 }
             }
