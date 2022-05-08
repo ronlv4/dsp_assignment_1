@@ -14,7 +14,7 @@ public class Main {
 
     private static final String MANAGER_TAG = "Manager";
     private static final String AMI_ID = "ami-0f9fc25dd2506cf6d";
-    private static final String BUCKET = "shir11226543666123";
+    private static final String BUCKET = "dspassignment1";
 
     public static void main(String[] args){
         String key = "Input-File-" + UUID.randomUUID().toString();
@@ -37,7 +37,7 @@ public class Main {
 
         String queueName = "Manager-Answer-" + UUID.randomUUID().toString();
         sqsConnector.createQueue(queueName);
-        Map<String, MessageAttributeValue> atts = Map.of("responseQueue", MessageAttributeValue.builder().stringValue(queueName).dataType("String").build(),
+        Map<String, MessageAttributeValue> atts = Map.of("responseQueueName", MessageAttributeValue.builder().stringValue(queueName).dataType("String").build(),
                                                          "bucket", MessageAttributeValue.builder().stringValue(BUCKET).dataType("String").build(),
                                                          "key", MessageAttributeValue.builder().stringValue(key).dataType("String").build(),
                                                          "n", MessageAttributeValue.builder().stringValue(n).dataType("String").build(),
