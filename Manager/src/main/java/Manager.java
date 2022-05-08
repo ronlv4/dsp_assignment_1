@@ -66,6 +66,7 @@ public class Manager {
         log.info(String.format("Answers for file %s will be written to queue %s", key, workerResponseQueueName));
         Set<String> neededAnswers = new HashSet<>();
         sqsConnector.createQueue(workerResponseQueueName);
+        sqsConnector.createQueue(WORKER_QUEUE);
         for(int i = 0;i < lines.length;i++){
             String analysis = lines[i].split("\t")[0];
             String fileUrl = lines[i].split("\t")[1];
