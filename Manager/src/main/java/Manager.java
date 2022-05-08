@@ -128,9 +128,11 @@ public class Manager {
                 executor.submit(() -> sqsConnector.deleteMessage(WORKER_ANSWER_QUEUE, m));
                 String id = m.messageAttributes().get("answerId").stringValue();
                 int order = Integer.parseInt(m.messageAttributes().get("order").stringValue());
+                log.info(String.format("Got response with id %s and order %s", id, order));
                 if(messagesFromWorkers.containsKey(id)){
                     messagesFromWorkers.get(id).set(order, m);
                     if(messagesFromWorkers.get(id).stream().noneMatch(Objects::isNull)){
+                        log.info(String.format("Got all responses for id %s", id));
                         executor.submit(() -> returnAnswer(messagesFromWorkers.get(id), id));
                         messagesFromWorkers.remove(id);
                     }
