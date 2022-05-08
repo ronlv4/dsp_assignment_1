@@ -83,6 +83,7 @@ public class Manager {
     }
 
     private static void returnAnswer(ArrayList<Message> messages, String responseQueue){
+        log.info(String.format("Returning answer tp %s", responseQueue));
         String bucket = "";
         StringBuilder ans = new StringBuilder();
         for(Message m : messages){
@@ -98,6 +99,8 @@ public class Manager {
         log.info(String.format("Writing file %s to s3", responseKey));
         sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
+        if(!acceptNewJobs && messagesFromWorkers.isEmpty())
+            running = false;
 
     }
 
@@ -133,11 +136,8 @@ public class Manager {
                     messagesFromWorkers.get(id).set(order, m);
                     if(messagesFromWorkers.get(id).stream().noneMatch(Objects::isNull)){
                         log.info(String.format("Got all responses for id %s", id));
-                        executor.submit(() -> returnAnswer(messagesFromWorkers.get(id), id));
-                        messagesFromWorkers.remove(id);
+                        executor.submit(() -> returnAnswer(messagesFromWorkers.remove(id), id));
                         log.info(String.format("%d unfinished tasks left", messagesFromWorkers.size()));
-                        if(!acceptNewJobs && messagesFromWorkers.isEmpty())
-                            running = false;
                     }
                 }
             }
