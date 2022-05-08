@@ -19,27 +19,14 @@ import java.util.concurrent.Callable;
 
 public class WorkerExecution implements Callable<File> {
 
-    Message message;
-    String outputBucket;
-    String outputQueueUrl;
     String fileUrl;
     String analysisType;
-    S3Client s3;
-    SqsClient sqs;
 
     static final Logger log = LogManager.getLogger();
 
-    public WorkerExecution(Message queueMessage, S3Client s3Client, SqsClient sqsClient) {
-        message = queueMessage;
-        outputBucket = message.messageAttributes().get("bucket").stringValue();
-        outputQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest
-                .builder()
-                .queueName(message.messageAttributes().get("responseQueueName").stringValue())
-                .build()).queueUrl();
-        fileUrl = message.messageAttributes().get("fileUrl").stringValue();
-        analysisType = message.messageAttributes().get("analysis").stringValue();
-        s3 = s3Client;
-        sqs = sqsClient;
+    public WorkerExecution(Message queueMessage) {
+        fileUrl = queueMessage.messageAttributes().get("fileUrl").stringValue();
+        analysisType = queueMessage.messageAttributes().get("analysis").stringValue();
     }
 
     public static String donwloadFile(URL url) throws IOException {

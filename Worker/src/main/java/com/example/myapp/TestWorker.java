@@ -33,21 +33,22 @@ public class TestWorker {
     }
 
     public static void createTestScene() {
-        String file = "POS\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
-                "CONSTITUENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
-                "DEPENDENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
-                "POS\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-                "CONSTITUENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-                "DEPENDENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
-                "POS\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
-                "CONSTITUENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
-                "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
+        String file = "POS\thttps://www.gutenberg.org/files/1659/1659-0.txt\n";
+//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+//                "DEPENDENCY\thttps://www.gutenberg.org/files/1659/1659-0.txt\n" +
+//                "POS\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+//                "DEPENDENCY\thttps://www.gutenberg.org/files/1660/1660-0.txt\n" +
+//                "POS\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
+//                "CONSTITUENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt\n" +
+//                "DEPENDENCY\thttps://www.gutenberg.org/files/1661/1661-0.txt";
         Random random = new Random();
         Region region = Region.US_EAST_1;
         SqsClient sqs = SqsClient.builder().region(region).build();
         String inputQueueUrl = QueueOperations.createQueue(sqs, "WorkerQueue");
-        String outputQueueUrl = QueueOperations.createQueue(sqs, "responseQueue");
-        String failedWorkerQueueUrl = QueueOperations.createQueue(sqs, "failedWorker");
+        String outputQueueName = "Worker-Answer-" + UUID.randomUUID();
+        QueueOperations.createQueue(sqs, outputQueueName);
+        QueueOperations.createQueue(sqs, "failedWorker");
         String[] lines = file.split("\\r?\\n");
         Arrays.stream(lines).parallel().forEach(line -> {
             String analysis = line.split("\t")[0];
@@ -55,7 +56,7 @@ public class TestWorker {
             MessageOperations.sendMessage(sqs, inputQueueUrl, "some non-empty message", new HashMap<String, MessageAttributeValue>() {{
                 put("bucket", MessageAttributeValue.builder().dataType("String").stringValue("dspassignment1").build());
                 put("analysis", MessageAttributeValue.builder().dataType("String").stringValue(analysis).build());
-                put("responseQueue", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueUrl).build());
+                put("responseQueueName", MessageAttributeValue.builder().dataType("String").stringValue(outputQueueName).build());
                 put("fileUrl", MessageAttributeValue.builder().dataType("String").stringValue(fileUrl).build());
                 put("order", MessageAttributeValue.builder().stringValue(Integer.toString(random.nextInt(1000))).dataType("String").build());
             }});
@@ -72,8 +73,8 @@ public class TestWorker {
         Logger log = LogManager.getRootLogger();
         log.info("hello");
         createTestScene();
-        testOnCloud();
-//        testLocally();
+//        testOnCloud();
+        testLocally();
     }
 
 

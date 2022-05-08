@@ -27,6 +27,7 @@ public class Worker {
     static SqsClient sqs = SqsClient.builder().region(region).build();
     static S3Client s3 = S3Client.builder().region(region).build();
     static final Logger log = LogManager.getLogger();
+
     public static int execute(String inputQueueUrl, String[] args) {
 
         while (true) {
@@ -36,6 +37,7 @@ public class Worker {
                     .builder()
                     .waitTimeSeconds(20)
                     .queueUrl(inputQueueUrl)
+                    .maxNumberOfMessages(1)
                     .messageAttributeNames("fileUrl", "analysis", "bucket", "responseQueueName", "order")
                     .build());
 
@@ -47,11 +49,10 @@ public class Worker {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    try{
+                    try {
                         System.out.println("Changing message visibility to 15 minutes");
                         MessageOperations.changeMessageVisibility(sqs, inputQueueUrl, message, ((int) TimeUnit.MINUTES.toSeconds(15)));
-                    }
-                    catch (Exception e){
+                    } catch (Exception e) {
                         log.error("Could not change message visibility", e);
                     }
                 }
@@ -66,13 +67,13 @@ public class Worker {
 
             String outputBucket = message.messageAttributes().get("bucket").stringValue();
             String outputQueueUrl = sqs.getQueueUrl(GetQueueUrlRequest
-                    .builder()
-                    .queueName(message.messageAttributes().get("responseQueueName").stringValue())
-                    .build())
+                            .builder()
+                            .queueName(message.messageAttributes().get("responseQueueName").stringValue())
+                            .build())
                     .queueUrl();
 
             try {
-                File outputFile = new WorkerExecution(message, s3, sqs).call();
+                File outputFile = new WorkerExecution(message).call();
 
                 s3.putObject(PutObjectRequest.builder()
                                 .bucket(outputBucket)
