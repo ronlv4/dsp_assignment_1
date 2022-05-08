@@ -20,7 +20,6 @@ public class Manager {
     private static final String WORKER_ANSWER_QUEUE = "WorkerAnswerQueue";
     private static final String MANAGER_QUEUE = "ManagerQueue";
     private static final String AMI_ID = "ami-0f9fc25dd2506cf6d";
-    private static final String BUCKET = "shir11226543666123";
     static S3Connector s3Connector = new S3Connector(Region.US_EAST_1);
     static SQSConnector sqsConnector = new SQSConnector(Region.US_EAST_1);
     static EC2Connector ec2Connector = new EC2Connector(Region.US_EAST_1);
@@ -86,18 +85,20 @@ public class Manager {
     }
 
     private static void returnAnswer(ArrayList<Message> messages, String responseQueue){
+        String bucket = "";
         StringBuilder ans = new StringBuilder();
         for(Message m : messages){
             String outputUrl = m.messageAttributes().get("outputUrl").stringValue();
             String inputUrl = m.messageAttributes().get("inputUrl").stringValue();
             String analysis = m.messageAttributes().get("analysis").stringValue();
+            bucket = m.messageAttributes().get("bucket").stringValue();
             ans.append(String.format("%s: %s %s\n", analysis, inputUrl, outputUrl));
         }
 
         String responseKey = "Output-File-" + UUID.randomUUID().toString();
-        s3Connector.writeStringToS3(BUCKET, responseKey, ans.toString());
+        s3Connector.writeStringToS3(bucket, responseKey, ans.toString());
         log.info(String.format("Writing file %s to s3", responseKey));
-        sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(BUCKET).dataType("String").build(),
+        sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
 
     }

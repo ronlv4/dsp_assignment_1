@@ -90,6 +90,7 @@ public class Worker {
                             put("analysis", message.messageAttributes().get("analysis"));
                             put("order", message.messageAttributes().get("order"));
                             put("answerId", message.messageAttributes().get("answerId"));
+                            put("bucket", message.messageAttributes().get("bucket"));
                         }});
                 timer.cancel();
                 MessageOperations.deleteMessage(sqs, inputQueueUrl, message);
