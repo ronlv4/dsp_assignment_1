@@ -26,6 +26,7 @@ public class Manager {
     static ExecutorService executor = Executors.newFixedThreadPool(8);
     static Map<String, ArrayList<Message>> messagesFromWorkers = new HashMap<>();
     static ReadWriteLock lock = new ReentrantReadWriteLock();
+    static boolean running = true;
 
     static String userData;
 
@@ -40,23 +41,22 @@ public class Manager {
 
     public static void main(String[] args){
 
-        boolean running = true;
         log.info("Manager started running");
         new Thread(Manager::waitForAnswers).start();
         while(running) {
             Message m = sqsConnector.getMessage(MANAGER_QUEUE);
             if(Objects.nonNull(m)) {
-                executor.submit(() -> handleRequest(m));
+                executor.submit(() -> handleRequest(m, m.messageAttributes().get("terminate").stringValue().equals("1")));
                 if(m.messageAttributes().get("terminate").stringValue().equals("1"))
-                    running = false;
+                    break;
             }
         }
-
+        while(running);
         terminate();
         log.info("Manager stopped running");
     }
 
-    private static void handleRequest(Message m){
+    private static void handleRequest(Message m, boolean doTerminate){
         sqsConnector.deleteMessage(MANAGER_QUEUE, m);
 
         double n = Double.parseDouble(m.messageAttributes().get("n").stringValue());
@@ -83,6 +83,7 @@ public class Manager {
                     "bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                     "order", MessageAttributeValue.builder().stringValue(Integer.toString(i)).dataType("String").build()));
         }
+        running = !doTerminate;
     }
 
     private static void returnAnswer(ArrayList<Message> messages, String responseQueue){
@@ -106,7 +107,6 @@ public class Manager {
 
     private static void terminate(){
         try {
-            Thread.sleep(1000);
             log.info("Started termination process");
             while(!messagesFromWorkers.isEmpty());
             log.info("All message ids were handled");
