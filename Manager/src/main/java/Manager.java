@@ -136,6 +136,7 @@ public class Manager {
                         log.info(String.format("Got all responses for id %s", id));
                         executor.submit(() -> returnAnswer(messagesFromWorkers.get(id), id));
                         messagesFromWorkers.remove(id);
+                        log.info(String.format("%d unfinished tasks left", messagesFromWorkers.size()));
                     }
                 }
             }
