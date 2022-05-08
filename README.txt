@@ -14,6 +14,12 @@ aws_access_key_id=aaaaa
 aws_secret_access_key=bbbb
 aws_session_token=cccccc
 
+ami-id: ami-0f9fc25dd2506cf6d
+we used t2.micro for all instances
+it took 45 minutes to finish working on the input files
+we used n=3
+
+
 
 Our code works in the following manner:
 The local app initializes one manager ec2 container (if it’s not running), writes the input file to pre made S3 bucket and a message to pre made SQS queue.
