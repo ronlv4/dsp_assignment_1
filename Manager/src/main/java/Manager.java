@@ -55,23 +55,23 @@ public class Manager {
         double n = Double.parseDouble(m.messageAttributes().get("n").stringValue());
         String bucket = m.messageAttributes().get("bucket").stringValue();
         String key = m.messageAttributes().get("key").stringValue();
-        String responseQueue = m.messageAttributes().get("responseQueue").stringValue();
+        String appResponseQueueName = m.messageAttributes().get("responseQueueName").stringValue();
 
         String inp = s3Connector.readStringFromS3(bucket, key);
         String[] lines = inp.split("\\r?\\n");
         int neededWorkers = Math.min((int)Math.ceil(lines.length/n), 16);
         ec2Connector.createEC2InstancesIfNotExists(WORKER_TAG, AMI_ID, userData, neededWorkers);
 
-        String queueName = "Worker-Answer-" + UUID.randomUUID().toString();
-        log.info(String.format("Answers for file %s will be written to queue %s", key, queueName));
+        String workerResponseQueueName = "Worker-Answer-" + UUID.randomUUID().toString();
+        log.info(String.format("Answers for file %s will be written to queue %s", key, workerResponseQueueName));
         Set<String> neededAnswers = new HashSet<>();
-        sqsConnector.createQueue(queueName);
+        sqsConnector.createQueue(workerResponseQueueName);
         for(int i = 0;i < lines.length;i++){
             String analysis = lines[i].split("\t")[0];
             String fileUrl = lines[i].split("\t")[1];
             neededAnswers.add(Integer.toString(i));
 
-            sqsConnector.sendMessage(WORKER_QUEUE, "a new job", Map.of("responseQueue", MessageAttributeValue.builder().stringValue(queueName).dataType("String").build(),
+            sqsConnector.sendMessage(WORKER_QUEUE, "a new job", Map.of("responseQueueName", MessageAttributeValue.builder().stringValue(workerResponseQueueName).dataType("String").build(),
                     "fileUrl", MessageAttributeValue.builder().stringValue(fileUrl).dataType("String").build(),
                     "analysis", MessageAttributeValue.builder().stringValue(analysis).dataType("String").build(),
                     "bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
@@ -81,7 +81,7 @@ public class Manager {
         Set<String> answers = new HashSet<>();
         StringBuilder ans = new StringBuilder();
         while(neededAnswers.size() != answers.size()){
-            Message workerMessage = sqsConnector.getMessage(queueName);
+            Message workerMessage = sqsConnector.getMessage(workerResponseQueueName);
             if(Objects.nonNull(workerMessage)){
                 String order = workerMessage.messageAttributes().get("order").stringValue();
                 if(answers.contains(order))
@@ -91,17 +91,17 @@ public class Manager {
                 String inputUrl = workerMessage.messageAttributes().get("inputUrl").stringValue();
                 String analysis = workerMessage.messageAttributes().get("analysis").stringValue();
                 ans.append(String.format("%s: %s %s\n", analysis, inputUrl, outputUrl));
-                sqsConnector.deleteMessage(queueName, workerMessage);
+                sqsConnector.deleteMessage(workerResponseQueueName, workerMessage);
             }
         }
 
         String responseKey = "Output-File-" + UUID.randomUUID().toString();
         s3Connector.writeStringToS3(bucket, responseKey, ans.toString());
         log.info(String.format("Writing file %s to s3", responseKey));
-        sqsConnector.sendMessage(responseQueue, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
+        sqsConnector.sendMessage(appResponseQueueName, "a", Map.of("bucket", MessageAttributeValue.builder().stringValue(bucket).dataType("String").build(),
                 "key", MessageAttributeValue.builder().stringValue(responseKey).dataType("String").build()));
 
-        sqsConnector.deleteQueue(queueName);
+        sqsConnector.deleteQueue(workerResponseQueueName);
     }
 
     private static void terminate(){
